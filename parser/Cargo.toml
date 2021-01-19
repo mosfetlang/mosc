@@ -1,0 +1,12 @@
+[package]
+name = "parser"
+description = "The parser module of the Mosfet Language"
+version = "0.1.0"
+authors = ["Julio Treviño Páez <julio.tpaez@gmail.com>"]
+edition = "2018"
+homepage = "https://mosfetlang.org"
+
+[dependencies]
+nom = "6.0.1"
+nom_locate = "3.0.0"
+num-rational = "0.3.2"
