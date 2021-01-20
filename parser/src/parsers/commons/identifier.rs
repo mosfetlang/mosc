@@ -20,7 +20,7 @@ pub struct Identifier {
 impl Identifier {
     // GETTERS ----------------------------------------------------------------
 
-    /// The span of the `Identifier`.
+    /// The span of the node.
     pub fn span(&self) -> &Span {
         &self.span
     }
@@ -32,14 +32,14 @@ impl Identifier {
 
     // STATIC METHODS ---------------------------------------------------------
 
-    /// Parses an `Identifier` in the specified `input` position.
+    /// Parses an `Identifier`.
     pub fn parse(reader: &mut Reader, _context: &ParserContext) -> ParserResult<Identifier> {
         cursor_manager(reader, |reader, init_cursor| {
             if let None = reader.read_one_of(&HEAD_CHARS) {
                 return Err(ParserError::NotFound);
             }
 
-            reader.read_one_or_more_of(&BODY_CHARS);
+            reader.read_many_of(&BODY_CHARS);
 
             let span = reader.substring_to_current(&init_cursor);
             Ok(Identifier { span })

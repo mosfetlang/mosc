@@ -5,7 +5,6 @@ use crate::parsers::expressions::literals::Literal;
 use crate::parsers::{ParserContext, ParserResult};
 
 pub mod literals;
-pub mod numbers;
 
 /// A expression in the Mosfet language, like a value or variable access.
 #[derive(Debug)]

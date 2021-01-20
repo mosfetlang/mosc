@@ -169,16 +169,16 @@ impl Reader {
     /// let mut reader = Reader::from_str("this test");
     /// assert_eq!(reader.offset(), 0);
     ///
-    /// let result = reader.read_one_or_more_of(&['a'..='z']);
+    /// let result = reader.read_many_of(&['a'..='z']);
     /// assert_eq!(result, Some("this"));
     /// assert_eq!(reader.offset(), 4);
     ///
-    /// let result = reader.read_one_or_more_of(&['a'..='z']);
+    /// let result = reader.read_many_of(&['a'..='z']);
     /// assert_eq!(result, None);
     /// assert_eq!(reader.offset(), 4);
     /// ```
-    pub fn read_one_or_more_of(&mut self, interval: &[RangeInclusive<char>]) -> Option<&str> {
-        if let Some(text) = self.continues_with_one_or_more_of(interval) {
+    pub fn read_many_of(&mut self, interval: &[RangeInclusive<char>]) -> Option<&str> {
+        if let Some(text) = self.continues_with_many_of(interval) {
             let length = text.len();
             self.consume(length);
             Some(&self.content.as_str()[self.offset() - length..self.offset()])
@@ -252,15 +252,15 @@ impl Reader {
     /// let mut reader = Reader::from_str("this test");
     /// assert_eq!(reader.offset(), 0);
     ///
-    /// let result = reader.continues_with_one_or_more_of(&['a'..='z']);
+    /// let result = reader.continues_with_many_of(&['a'..='z']);
     /// assert_eq!(result, Some("this"));
     /// assert_eq!(reader.offset(), 0);
     ///
-    /// let result = reader.continues_with_one_or_more_of(&['A'..='Z']);
+    /// let result = reader.continues_with_many_of(&['A'..='Z']);
     /// assert_eq!(result, None);
     /// assert_eq!(reader.offset(), 0);
     /// ```
-    pub fn continues_with_one_or_more_of(&self, interval: &[RangeInclusive<char>]) -> Option<&str> {
+    pub fn continues_with_many_of(&self, interval: &[RangeInclusive<char>]) -> Option<&str> {
         let remaining = self.remaining_content();
 
         let mut offset = 0;

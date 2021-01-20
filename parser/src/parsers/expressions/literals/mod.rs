@@ -1,7 +1,10 @@
+pub use numbers::*;
+
 use crate::errors::ParserError;
 use crate::io::Reader;
-use crate::parsers::expressions::numbers::Number;
 use crate::parsers::{ParserContext, ParserResult};
+
+mod numbers;
 
 /// A literal value in the Mosfet language, like a number, string, etc.
 #[derive(Debug)]

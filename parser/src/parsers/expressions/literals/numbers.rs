@@ -5,9 +5,8 @@ use num_rational::BigRational;
 
 use crate::errors::ParserError;
 use crate::io::{Reader, Span};
-use crate::parsers::result::ParserResult;
 use crate::parsers::utils::cursor_manager;
-use crate::parsers::ParserContext;
+use crate::parsers::{ParserContext, ParserResult};
 
 static BINARY_PREFIX: &str = "0b";
 static OCTAL_PREFIX: &str = "0o";
@@ -109,17 +108,17 @@ impl Number {
         radix: u32,
     ) -> ParserResult<Number> {
         cursor_manager(reader, |reader, init_cursor| {
-            if let None = reader.read_one_or_more_of(interval) {
+            if let None = reader.read_many_of(interval) {
                 return Err(ParserError::NotFound);
             }
 
             loop {
                 let init_loop_cursor = reader.save();
-                if let None = reader.read_one_or_more_of(&SEPARATOR_RANGE) {
+                if let None = reader.read_many_of(&SEPARATOR_RANGE) {
                     break;
                 }
 
-                if let None = reader.read_one_or_more_of(interval) {
+                if let None = reader.read_many_of(interval) {
                     reader.restore(init_loop_cursor);
                     break;
                 }
