@@ -1,8 +1,13 @@
+use crate::io::Cursor;
+
 /// The error that will return all Parser methods and components in case something went wrong.
 #[derive(Debug, Clone)]
 pub enum ParserError {
-    /// The parser cannot find a valid result with the input.
     NotFound,
+
+    MissingVariableNameInVariableDeclaration(Cursor),
+    MissingAssignOperatorInVariableDeclaration(Cursor),
+    MissingExpressionInVariableDeclaration(Cursor),
 }
 
 impl ParserError {
