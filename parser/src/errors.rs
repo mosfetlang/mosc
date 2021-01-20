@@ -10,6 +10,9 @@ pub enum ParserError {
     MissingExpressionInVariableDeclaration(Cursor),
 
     MissingExpressionInReturnStatement(Cursor),
+
+    ExpectedEOFInFile(Cursor),
+    TwoStatementsInSameLineInFile(Cursor),
 }
 
 impl ParserError {

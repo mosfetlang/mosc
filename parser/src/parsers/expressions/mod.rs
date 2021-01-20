@@ -1,5 +1,5 @@
 use crate::errors::ParserError;
-use crate::io::Reader;
+use crate::io::{Reader, Span};
 use crate::parsers::commons::identifier::Identifier;
 use crate::parsers::expressions::literals::Literal;
 use crate::parsers::{ParserContext, ParserResult};
@@ -14,16 +14,30 @@ pub enum Expression {
 }
 
 impl Expression {
+    // GETTERS ----------------------------------------------------------------
+
+    /// The span of the node.
+    pub fn span(&self) -> &Span {
+        match self {
+            Expression::Literal(n) => n.span(),
+            Expression::VariableAccess(n) => n.span(),
+        }
+    }
+
     // STATIC METHODS ---------------------------------------------------------
 
     /// Parses an expression.
     pub fn parse(reader: &mut Reader, context: &ParserContext) -> ParserResult<Expression> {
-        if let Ok(node) = Literal::parse(reader, context) {
-            return Ok(Expression::Literal(node));
+        match Literal::parse(reader, context) {
+            Ok(node) => return Ok(Expression::Literal(node)),
+            Err(ParserError::NotFound) => { /* Ignore */ }
+            Err(e) => return Err(e),
         }
 
-        if let Ok(node) = Identifier::parse(reader, context) {
-            return Ok(Expression::VariableAccess(node));
+        match Identifier::parse(reader, context) {
+            Ok(node) => return Ok(Expression::VariableAccess(node)),
+            Err(ParserError::NotFound) => { /* Ignore */ }
+            Err(e) => return Err(e),
         }
 
         Err(ParserError::NotFound)

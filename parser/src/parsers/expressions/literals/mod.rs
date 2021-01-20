@@ -1,7 +1,7 @@
 pub use numbers::*;
 
 use crate::errors::ParserError;
-use crate::io::Reader;
+use crate::io::{Reader, Span};
 use crate::parsers::{ParserContext, ParserResult};
 
 mod numbers;
@@ -13,12 +13,23 @@ pub enum Literal {
 }
 
 impl Literal {
+    // GETTERS ----------------------------------------------------------------
+
+    /// The span of the node.
+    pub fn span(&self) -> &Span {
+        match self {
+            Literal::Number(n) => n.span(),
+        }
+    }
+
     // STATIC METHODS ---------------------------------------------------------
 
     /// Parses a literal.
     pub fn parse(reader: &mut Reader, context: &ParserContext) -> ParserResult<Literal> {
-        if let Ok(node) = Number::parse(reader, context) {
-            return Ok(Literal::Number(node));
+        match Number::parse(reader, context) {
+            Ok(node) => return Ok(Literal::Number(node)),
+            Err(ParserError::NotFound) => { /* Ignore */ }
+            Err(e) => return Err(e),
         }
 
         Err(ParserError::NotFound)

@@ -30,7 +30,7 @@ pub struct Number {
 impl Number {
     // GETTERS ----------------------------------------------------------------
 
-    /// The span of the `Number`.
+    /// The span of the node.
     pub fn span(&self) -> &Span {
         &self.span
     }
