@@ -8,6 +8,8 @@ pub enum ParserError {
     MissingVariableNameInVariableDeclaration(Cursor),
     MissingAssignOperatorInVariableDeclaration(Cursor),
     MissingExpressionInVariableDeclaration(Cursor),
+
+    MissingExpressionInReturnStatement(Cursor),
 }
 
 impl ParserError {
