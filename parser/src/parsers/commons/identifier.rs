@@ -45,6 +45,24 @@ impl Identifier {
             Ok(Identifier { span })
         })
     }
+
+    /// Parses a keyword.
+    pub fn parse_keyword(reader: &mut Reader, _context: &ParserContext, keyword: &str) -> bool {
+        let init_cursor = reader.save();
+        let id = match Identifier::parse(reader, _context) {
+            Ok(v) => v,
+            Err(_) => {
+                return false;
+            }
+        };
+
+        if id.name() == keyword {
+            true
+        } else {
+            reader.restore(init_cursor);
+            false
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -103,5 +121,21 @@ mod tests {
             "The error is incorrect"
         );
         assert_eq!(reader.offset(), 0, "The offset is incorrect");
+    }
+
+    #[test]
+    fn test_parse_keyword() {
+        let mut reader = Reader::from_str("let me test it");
+        let result = Identifier::parse_keyword(&mut reader, &ParserContext::default(), "let");
+
+        assert_eq!(result, true, "The result is incorrect");
+    }
+
+    #[test]
+    fn test_parse_keyword_err() {
+        let mut reader = Reader::from_str("letting me test it");
+        let result = Identifier::parse_keyword(&mut reader, &ParserContext::default(), "let");
+
+        assert_eq!(result, false, "The result is incorrect");
     }
 }
