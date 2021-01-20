@@ -429,7 +429,7 @@ impl Reader {
         self.cursor.set_line(self.line() + additional_lines);
     }
 
-    // STATIC -----------------------------------------------------------------
+    // STATIC METHODS ---------------------------------------------------------
 
     /// Checks whether `char` is contained in `interval`.
     fn check_inside(char: char, interval: &[RangeInclusive<char>]) -> bool {
