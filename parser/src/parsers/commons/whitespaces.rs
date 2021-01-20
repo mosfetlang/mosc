@@ -6,10 +6,23 @@ use crate::parsers::result::ParserResult;
 use crate::parsers::utils::cursor_manager;
 use crate::parsers::ParserContext;
 
-// FIXME(juliotpaez): use Unicode classifications.
-static WHITESPACE_CHARS: [RangeInclusive<char>; 2] = ['\t'..='\t', ' '..=' '];
-// FIXME(juliotpaez): use Unicode classifications.
-static MULTILINE_WHITESPACE_CHARS: [RangeInclusive<char>; 2] = ['\n'..='\n', '\r'..='\r'];
+// Follow UCD specification: https://www.unicode.org/Public/13.0.0/ucd/PropList.txt
+static WHITESPACE_CHARS: [RangeInclusive<char>; 8] = [
+    '\u{9}'..='\u{9}',
+    '\u{20}'..='\u{20}',
+    '\u{A0}'..='\u{A0}',
+    '\u{1680}'..='\u{1680}',
+    '\u{2000}'..='\u{200A}',
+    '\u{202F}'..='\u{202F}',
+    '\u{205F}'..='\u{205F}',
+    '\u{3000}'..='\u{3000}',
+];
+// Follow UCD specification: https://www.unicode.org/Public/13.0.0/ucd/PropList.txt
+static MULTILINE_WHITESPACE_CHARS: [RangeInclusive<char>; 3] = [
+    '\u{A}'..='\u{D}',
+    '\u{85}'..='\u{85}',
+    '\u{2028}'..='\u{2029}',
+];
 
 /// A valid name in the Mosfet language.
 #[derive(Debug)]
@@ -93,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_parse_inline() {
-        let mut reader = Reader::from_str("  \t\t\t  \t-rest");
+        let mut reader = Reader::from_str("  \t\t\t  \t\n");
         let whitespace = Whitespace::parse_inline(&mut reader, &ParserContext::default())
             .expect("The parser must succeed");
 
@@ -106,6 +119,28 @@ mod tests {
             whitespace.is_multiline, false,
             "The is_multiline is incorrect"
         );
+    }
+
+    #[test]
+    fn test_parse_inline_exhaustive() {
+        for char_range in &WHITESPACE_CHARS {
+            for char in char_range.clone() {
+                let text = format!("{}", char);
+                let mut reader = Reader::from_str(text.as_str());
+                let whitespace = Whitespace::parse_inline(&mut reader, &ParserContext::default())
+                    .expect("The parser must succeed");
+
+                assert_eq!(
+                    whitespace.span.content(),
+                    text.as_str(),
+                    "The content is incorrect"
+                );
+                assert_eq!(
+                    whitespace.is_multiline, false,
+                    "The is_multiline is incorrect"
+                );
+            }
+        }
     }
 
     #[test]
@@ -140,5 +175,48 @@ mod tests {
             whitespace.is_multiline, true,
             "The is_multiline is incorrect"
         );
+    }
+
+    #[test]
+    fn test_parse_multiline_exhaustive() {
+        for char_range in &WHITESPACE_CHARS {
+            for char in char_range.clone() {
+                let text = format!("{}", char);
+                let mut reader = Reader::from_str(text.as_str());
+                let whitespace =
+                    Whitespace::parse_multiline(&mut reader, &ParserContext::default())
+                        .expect("The parser must succeed");
+
+                assert_eq!(
+                    whitespace.span.content(),
+                    text.as_str(),
+                    "The content is incorrect"
+                );
+                assert_eq!(
+                    whitespace.is_multiline, false,
+                    "The is_multiline is incorrect"
+                );
+            }
+        }
+
+        for char_range in &MULTILINE_WHITESPACE_CHARS {
+            for char in char_range.clone() {
+                let text = format!("{}", char);
+                let mut reader = Reader::from_str(text.as_str());
+                let whitespace =
+                    Whitespace::parse_multiline(&mut reader, &ParserContext::default())
+                        .expect("The parser must succeed");
+
+                assert_eq!(
+                    whitespace.span.content(),
+                    text.as_str(),
+                    "The content is incorrect"
+                );
+                assert_eq!(
+                    whitespace.is_multiline, true,
+                    "The is_multiline is incorrect"
+                );
+            }
+        }
     }
 }
