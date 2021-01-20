@@ -3,8 +3,10 @@ use std::ops::RangeInclusive;
 use num_bigint::BigInt;
 use num_rational::BigRational;
 
+use crate::errors::ParserError;
 use crate::io::{Reader, Span};
 use crate::parsers::result::ParserResult;
+use crate::parsers::utils::cursor_manager;
 use crate::parsers::ParserContext;
 
 static BINARY_PREFIX: &str = "0b";
@@ -43,98 +45,60 @@ impl Number {
 
     /// Parses a prefixed `Number` or a decimal without prefix.
     pub fn parse(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
-        let init_cursor = reader.save();
-        if reader.read(BINARY_PREFIX) {
-            return match Self::parse_number(reader, context, &BINARY_CHARS, 2) {
-                Ok(number) => {
+        cursor_manager(reader, |reader, init_cursor| {
+            if reader.read(BINARY_PREFIX) {
+                return Self::parse_binary(reader, context).map(|mut number| {
                     let span = reader.substring_to_current(&init_cursor);
-                    Ok(Number { span, number })
-                }
-                Err(e) => {
-                    reader.restore(init_cursor);
-                    Err(e)
-                }
-            };
-        }
+                    number.span = span;
+                    number
+                });
+            }
 
-        if reader.read(OCTAL_PREFIX) {
-            return match Self::parse_number(reader, context, &OCTAL_CHARS, 8) {
-                Ok(number) => {
+            if reader.read(OCTAL_PREFIX) {
+                return Self::parse_octal(reader, context).map(|mut number| {
                     let span = reader.substring_to_current(&init_cursor);
-                    Ok(Number { span, number })
-                }
-                Err(e) => {
-                    reader.restore(init_cursor);
-                    Err(e)
-                }
-            };
-        }
+                    number.span = span;
+                    number
+                });
+            }
 
-        if reader.read(HEXADECIMAL_PREFIX) {
-            return match Self::parse_number(reader, context, &HEXADECIMAL_CHARS, 16) {
-                Ok(number) => {
+            if reader.read(HEXADECIMAL_PREFIX) {
+                return Self::parse_hexadecimal(reader, context).map(|mut number| {
                     let span = reader.substring_to_current(&init_cursor);
-                    Ok(Number { span, number })
-                }
-                Err(e) => {
-                    reader.restore(init_cursor);
-                    Err(e)
-                }
-            };
-        }
+                    number.span = span;
+                    number
+                });
+            }
 
-        // Decimal
-        reader.read(DECIMAL_PREFIX);
+            // Decimal
+            reader.read(DECIMAL_PREFIX);
 
-        match Self::parse_number(reader, context, &DECIMAL_CHARS, 10) {
-            Ok(number) => {
+            Self::parse_decimal(reader, context).map(|mut number| {
                 let span = reader.substring_to_current(&init_cursor);
-                Ok(Number { span, number })
-            }
-            Err(e) => {
-                reader.restore(init_cursor);
-                Err(e)
-            }
-        }
+                number.span = span;
+                number
+            })
+        })
     }
 
     /// Parses a binary `Number` without prefix.
-    pub fn parse_binary(reader: &mut Reader, _context: &ParserContext) -> ParserResult<Number> {
-        let init_cursor = reader.save();
-        Self::parse_number(reader, _context, &BINARY_CHARS, 2).map(|number| {
-            let span = reader.substring_to_current(&init_cursor);
-            Number { span, number }
-        })
+    pub fn parse_binary(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
+        Self::parse_number(reader, context, &BINARY_CHARS, 2)
     }
 
     /// Parses an octal `Number` without prefix.
-    pub fn parse_octal(reader: &mut Reader, _context: &ParserContext) -> ParserResult<Number> {
-        let init_cursor = reader.save();
-        Self::parse_number(reader, _context, &OCTAL_CHARS, 8).map(|number| {
-            let span = reader.substring_to_current(&init_cursor);
-            Number { span, number }
-        })
+    pub fn parse_octal(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
+        Self::parse_number(reader, context, &OCTAL_CHARS, 8)
     }
 
     /// Parses a decimal `Number` without prefix.
-    pub fn parse_decimal(reader: &mut Reader, _context: &ParserContext) -> ParserResult<Number> {
-        let init_cursor = reader.save();
-        Self::parse_number(reader, _context, &DECIMAL_CHARS, 10).map(|number| {
-            let span = reader.substring_to_current(&init_cursor);
-            Number { span, number }
-        })
+    pub fn parse_decimal(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
+        Self::parse_number(reader, context, &DECIMAL_CHARS, 10)
     }
 
     /// Parses an hexadecimal `Number` without prefix.
-    pub fn parse_hexadecimal(
-        reader: &mut Reader,
-        _context: &ParserContext,
-    ) -> ParserResult<Number> {
-        let init_cursor = reader.save();
-        Self::parse_number(reader, _context, &HEXADECIMAL_CHARS, 16).map(|number| {
-            let span = reader.substring_to_current(&init_cursor);
-            Number { span, number }
-        })
+    pub fn parse_hexadecimal(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
+        Self::parse_number(reader, context, &HEXADECIMAL_CHARS, 16)
     }
 
     /// Parses a `Number` without prefix.
@@ -143,28 +107,32 @@ impl Number {
         _context: &ParserContext,
         interval: &[RangeInclusive<char>],
         radix: u32,
-    ) -> ParserResult<BigRational> {
-        let init_cursor = reader.save();
-        if let None = reader.read_one_or_more_of(interval) {
-            return Err(None);
-        }
-
-        loop {
-            let init_loop_cursor = reader.save();
-            if let None = reader.read_one_or_more_of(&SEPARATOR_RANGE) {
-                break;
-            }
-
+    ) -> ParserResult<Number> {
+        cursor_manager(reader, |reader, init_cursor| {
             if let None = reader.read_one_or_more_of(interval) {
-                reader.restore(init_loop_cursor);
-                break;
+                return Err(ParserError::NotFound);
             }
-        }
 
-        let span = reader.substring_to_current(&init_cursor);
-        Ok(BigRational::from_integer(
-            BigInt::parse_bytes(span.content().replace("_", "").as_bytes(), radix).unwrap(),
-        ))
+            loop {
+                let init_loop_cursor = reader.save();
+                if let None = reader.read_one_or_more_of(&SEPARATOR_RANGE) {
+                    break;
+                }
+
+                if let None = reader.read_one_or_more_of(interval) {
+                    reader.restore(init_loop_cursor);
+                    break;
+                }
+            }
+
+            let span = reader.substring_to_current(&init_cursor);
+            Ok(Number {
+                number: BigRational::from_integer(
+                    BigInt::parse_bytes(span.content().replace("_", "").as_bytes(), radix).unwrap(),
+                ),
+                span,
+            })
+        })
     }
 }
 
@@ -383,5 +351,36 @@ mod tests {
             ),
             "The number is incorrect"
         );
+    }
+
+    #[test]
+    fn test_parse_err_not_found() {
+        let mut reader = Reader::from_str("test");
+        let error = Number::parse(&mut reader, &ParserContext::default())
+            .expect_err("The parser must not succeed");
+
+        assert!(
+            error.variant_eq(&ParserError::NotFound),
+            "The error is incorrect"
+        );
+        assert_eq!(reader.offset(), 0, "The offset is incorrect");
+
+        // Check after prefix.
+        for prefix in &[
+            BINARY_PREFIX,
+            OCTAL_PREFIX,
+            DECIMAL_PREFIX,
+            HEXADECIMAL_PREFIX,
+        ] {
+            let mut reader = Reader::from_str(prefix);
+            let error = Number::parse(&mut reader, &ParserContext::default())
+                .expect_err("The parser must not succeed");
+
+            assert!(
+                error.variant_eq(&ParserError::NotFound),
+                "The error is incorrect"
+            );
+            assert_eq!(reader.offset(), 0, "The offset is incorrect");
+        }
     }
 }

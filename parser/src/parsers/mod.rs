@@ -3,6 +3,7 @@ pub use result::*;
 pub mod commons;
 pub mod expressions;
 mod result;
+mod utils;
 
 /// The context of the parser that contains all contextual information of the parsing.
 #[derive(Debug)]

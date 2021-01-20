@@ -1,7 +1,9 @@
 use std::ops::RangeInclusive;
 
+use crate::errors::ParserError;
 use crate::io::{Reader, Span};
 use crate::parsers::result::ParserResult;
+use crate::parsers::utils::cursor_manager;
 use crate::parsers::ParserContext;
 
 // FIXME(juliotpaez): use Unicode classifications.
@@ -32,15 +34,16 @@ impl Identifier {
 
     /// Parses an `Identifier` in the specified `input` position.
     pub fn parse(reader: &mut Reader, _context: &ParserContext) -> ParserResult<Identifier> {
-        let init_cursor = reader.save();
-        if let None = reader.read_one_of(&HEAD_CHARS) {
-            return Err(None);
-        }
+        cursor_manager(reader, |reader, init_cursor| {
+            if let None = reader.read_one_of(&HEAD_CHARS) {
+                return Err(ParserError::NotFound);
+            }
 
-        reader.read_one_or_more_of(&BODY_CHARS);
+            reader.read_one_or_more_of(&BODY_CHARS);
 
-        let span = reader.substring_to_current(&init_cursor);
-        Ok(Identifier { span })
+            let span = reader.substring_to_current(&init_cursor);
+            Ok(Identifier { span })
+        })
     }
 }
 
@@ -87,5 +90,18 @@ mod tests {
             "___test___32___",
             "The name is incorrect"
         );
+    }
+
+    #[test]
+    fn test_parse_err_not_found() {
+        let mut reader = Reader::from_str("23test");
+        let error = Identifier::parse(&mut reader, &ParserContext::default())
+            .expect_err("The parser must not succeed");
+
+        assert!(
+            error.variant_eq(&ParserError::NotFound),
+            "The error is incorrect"
+        );
+        assert_eq!(reader.offset(), 0, "The offset is incorrect");
     }
 }
