@@ -1,10 +1,15 @@
 [package]
-name = "compiler"
-description = "The compiler module of the Mosfet Language"
+name = "mosc"
+description = "The compiler of the Mosfet Language"
 version = "0.1.0"
 authors = ["Julio Treviño Páez <julio.tpaez@gmail.com>"]
 edition = "2018"
 homepage = "https://mosfetlang.org"
+
+[dependencies]
+log = "0.4.13"
+pretty_env_logger = "0.4.0"
+clap = "3.0.0-beta.2"
 
 [dependencies.parser]
 version = "0.1.0"
