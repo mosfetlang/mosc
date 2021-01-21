@@ -16,11 +16,7 @@ impl Span {
     // CONSTRUCTORS -----------------------------------------------------------
 
     /// Create a new `Span` with the specified data.
-    pub(in crate::io::readers) fn new(
-        content: Arc<String>,
-        start_cursor: Cursor,
-        end_cursor: Cursor,
-    ) -> Span {
+    pub(in crate) fn new(content: Arc<String>, start_cursor: Cursor, end_cursor: Cursor) -> Span {
         Span {
             content,
             start_cursor,

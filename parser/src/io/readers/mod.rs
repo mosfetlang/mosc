@@ -14,7 +14,7 @@ mod span;
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 /// A `String` reader that moves a cursor the reader updated.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Reader {
     id: usize,
     file_path: Option<Arc<String>>,
@@ -88,8 +88,8 @@ impl Reader {
 
     /// The remaining content as an `Span`.
     pub fn remaining_content_span(&self) -> Span {
-        let mut aux_reader = Reader::from_content(self.content.clone());
-        aux_reader.consume(self.content.len());
+        let mut aux_reader = self.clone();
+        aux_reader.consume(self.remaining_length());
 
         Span::new(
             self.content.clone(),
@@ -100,12 +100,21 @@ impl Reader {
 
     /// The length in bytes of the content that is not already read.
     pub fn remaining_length(&self) -> usize {
-        self.content.len() - self.offset()
+        self.content.len() - self.cursor.offset()
     }
 
     /// The length in characters of the content that is not already read.
     pub fn remaining_char_length(&self) -> usize {
         num_chars(self.remaining_content().as_bytes())
+    }
+
+    /// Returns an empty `Span` located at the current position.
+    pub fn span_at_offset(&self) -> Span {
+        Span::new(
+            self.content.clone(),
+            self.cursor.clone(),
+            self.cursor.clone(),
+        )
     }
 
     // METHODS ----------------------------------------------------------------
