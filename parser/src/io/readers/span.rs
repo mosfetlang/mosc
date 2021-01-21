@@ -117,8 +117,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(1, 0, 0, 0), // Only offset matters.
-            Cursor::new(1, 0, 0, 0), // Only offset matters.
+            Cursor::new(0, 1, 0, 0, 0), // Only offset matters.
+            Cursor::new(0, 1, 0, 0, 0), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "This", "The lines is incorrect");
@@ -127,8 +127,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(4, 0, 0, 0), // Only offset matters.
-            Cursor::new(4, 0, 0, 0), // Only offset matters.
+            Cursor::new(0, 4, 0, 0, 0), // Only offset matters.
+            Cursor::new(0, 4, 0, 0, 0), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "This", "The lines is incorrect");
@@ -137,8 +137,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(5, 0, 0, 0), // Only offset matters.
-            Cursor::new(5, 0, 0, 0), // Only offset matters.
+            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
+            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "is", "The lines is incorrect");
@@ -149,8 +149,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(5, 0, 0, 0), // Only offset matters.
-            Cursor::new(8, 0, 0, 0), // Only offset matters.
+            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
+            Cursor::new(0, 8, 0, 0, 0), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "is\nthe", "The lines is incorrect");

@@ -1,4 +1,5 @@
 use std::ops::RangeInclusive;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use bytecount::num_chars;
@@ -10,9 +11,12 @@ pub use span::*;
 mod cursor;
 mod span;
 
+static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
+
 /// A `String` reader that moves a cursor the reader updated.
 #[derive(Debug)]
 pub struct Reader {
+    id: usize,
     file_path: Option<Arc<String>>,
     content: Arc<String>,
     cursor: Cursor,
@@ -23,10 +27,12 @@ impl Reader {
 
     /// Create a new `Reader` with the specified `file_path` and `content`.
     pub fn new(file_path: Option<Arc<String>>, content: Arc<String>) -> Reader {
+        let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
         Reader {
+            id,
             file_path,
             content,
-            cursor: Cursor::new(0, 0, 1, 1),
+            cursor: Cursor::new(id, 0, 0, 1, 1),
         }
     }
 
@@ -303,6 +309,17 @@ impl Reader {
     /// assert_eq!(reader.substring(&to, &from).content(), "is tes");
     /// ```
     pub fn substring(&self, from: &Cursor, to: &Cursor) -> Span {
+        assert_eq!(
+            from.reader_id(),
+            self.id,
+            "from does not belong to this reader"
+        );
+        assert_eq!(
+            to.reader_id(),
+            self.id,
+            "from does not belong to this reader"
+        );
+
         let (from, to) = if from.offset() <= to.offset() {
             (from, to)
         } else {
@@ -312,12 +329,12 @@ impl Reader {
         Span::new(self.content.clone(), from.clone(), to.clone())
     }
 
-    /// Gets a `Span` that contains the susbstring delimited by `from` and the current cursors.
+    /// Gets a `Span` that contains the susbstring delimited by `cursor` and current cursors.
     /// The order of the cursors does not matter.
     ///
     /// # Safety
     ///
-    /// This method will panic if any of both cursors do not belong to the current reader.
+    /// This method will panic if the specified cursor does not belong to the current reader.
     ///
     /// # Example
     ///
@@ -331,11 +348,17 @@ impl Reader {
     ///
     /// assert_eq!(reader.substring_to_current(&from).content(), "is tes");
     /// ```
-    pub fn substring_to_current(&self, from: &Cursor) -> Span {
-        let (from, to) = if from.offset() <= self.offset() {
-            (from, &self.cursor)
+    pub fn substring_to_current(&self, cursor: &Cursor) -> Span {
+        assert_eq!(
+            cursor.reader_id(),
+            self.id,
+            "cursor does not belong to this reader"
+        );
+
+        let (from, to) = if cursor.offset() <= self.offset() {
+            (cursor, &self.cursor)
         } else {
-            (&self.cursor, from)
+            (&self.cursor, cursor)
         };
 
         Span::new(self.content.clone(), from.clone(), to.clone())
@@ -362,8 +385,7 @@ impl Reader {
     ///
     /// # Safety
     ///
-    /// This method is not checked so can create undefined behaviour if the cursor
-    /// does not correspond to the reader.
+    /// This method will panic if the specified cursor does not belong to the current reader.
     ///
     /// # Example
     ///
@@ -388,6 +410,11 @@ impl Reader {
     /// assert_eq!(cursor2.offset(), 2);
     /// ```
     pub fn restore(&mut self, cursor: Cursor) {
+        assert_eq!(
+            cursor.reader_id(),
+            self.id,
+            "cursor does not belong to this reader"
+        );
         self.cursor = cursor;
     }
 

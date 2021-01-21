@@ -1,6 +1,6 @@
 [package]
 name = "parser"
-description = "The parser module of the Mosfet Language"
+description = "The parser of the Mosfet Language"
 version = "0.1.0"
 authors = ["Julio Treviño Páez <julio.tpaez@gmail.com>"]
 edition = "2018"

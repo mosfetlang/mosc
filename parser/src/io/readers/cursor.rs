@@ -1,6 +1,9 @@
+use crate::io::Reader;
+
 /// A specific position inside a `Reader`.
 #[derive(Debug, Clone)]
 pub struct Cursor {
+    reader_id: usize,
     offset: usize,
     char_offset: usize,
     line: usize,
@@ -12,12 +15,14 @@ impl Cursor {
 
     /// Builds a new `Cursor` with the specified data.
     pub(in crate::io::readers) fn new(
+        reader_id: usize,
         offset: usize,
         char_offset: usize,
         line: usize,
         column: usize,
     ) -> Cursor {
         Cursor {
+            reader_id,
             offset,
             char_offset,
             line,
@@ -26,6 +31,11 @@ impl Cursor {
     }
 
     // GETTERS ----------------------------------------------------------------
+
+    /// The id of the `Reader` this cursor belongs to.
+    pub(in crate::io::readers) fn reader_id(&self) -> usize {
+        self.reader_id
+    }
 
     /// The position of the `Cursor` in bytes.
     pub fn offset(&self) -> usize {
@@ -65,5 +75,25 @@ impl Cursor {
 
     pub(in crate::io::readers) fn set_column(&mut self, column: usize) {
         self.column = column;
+    }
+
+    // METHODS ----------------------------------------------------------------
+
+    /// Returns whether this cursor belong to the `reader` or not.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use parser::io::Reader;
+    /// let reader1 = Reader::from_str("test1");
+    /// let reader2 = Reader::from_str("test2");
+    /// let cursor1 = reader1.save();
+    /// let cursor2 = reader2.save();
+    ///
+    /// assert_eq!(cursor1.belongs_to(&reader1), true);
+    /// assert_eq!(cursor2.belongs_to(&reader1), false);
+    /// ```
+    pub fn belongs_to(&self, reader: &Reader) -> bool {
+        self.reader_id == reader.id
     }
 }
