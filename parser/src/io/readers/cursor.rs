@@ -1,7 +1,7 @@
 use crate::io::Reader;
 
 /// A specific position inside a `Reader`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Cursor {
     reader_id: usize,
     offset: usize,
@@ -59,7 +59,7 @@ impl Cursor {
         self.column
     }
 
-    // GETTERS ----------------------------------------------------------------
+    // SETTERS ----------------------------------------------------------------
 
     pub(in crate::io::readers) fn set_offset(&mut self, offset: usize) {
         self.offset = offset;

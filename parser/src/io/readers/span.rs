@@ -5,22 +5,31 @@ use memchr::{memchr, memrchr};
 use crate::io::Cursor;
 
 /// A Span is a set of meta information about the location of a substring.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Span {
     content: Arc<String>,
-    start_cursor: Cursor,
-    end_cursor: Cursor,
+    start_cursor: Arc<Cursor>,
+    end_cursor: Arc<Cursor>,
 }
 
 impl Span {
     // CONSTRUCTORS -----------------------------------------------------------
 
-    /// Create a new `Span` with the specified data.
-    pub(in crate) fn new(content: Arc<String>, start_cursor: Cursor, end_cursor: Cursor) -> Span {
+    /// Builds a new `Span` with the specified data.
+    pub(in crate) fn new(content: Arc<String>, start_cursor: Arc<Cursor>, end_cursor: Arc<Cursor>) -> Span {
         Span {
             content,
             start_cursor,
             end_cursor,
+        }
+    }
+
+    /// Builds a new empty `Span`.
+    pub(in crate) fn new_empty() -> Span {
+        Span {
+            content: Arc::new("".to_string()),
+            start_cursor: Arc::new(Cursor::new_empty()),
+            end_cursor: Arc::new(Cursor::new_empty()),
         }
     }
 
@@ -113,8 +122,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(0, 1, 0, 0, 0), // Only offset matters.
-            Cursor::new(0, 1, 0, 0, 0), // Only offset matters.
+            Arc::new(Cursor::new(0, 1, 0, 0, 0)), // Only offset matters.
+            Arc::new(Cursor::new(0, 1, 0, 0, 0)), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "This", "The lines is incorrect");
@@ -123,8 +132,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(0, 4, 0, 0, 0), // Only offset matters.
-            Cursor::new(0, 4, 0, 0, 0), // Only offset matters.
+            Arc::new(Cursor::new(0, 4, 0, 0, 0)), // Only offset matters.
+            Arc::new(Cursor::new(0, 4, 0, 0, 0)), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "This", "The lines is incorrect");
@@ -133,8 +142,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
-            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
+            Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
+            Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "is", "The lines is incorrect");
@@ -145,8 +154,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
-            Cursor::new(0, 8, 0, 0, 0), // Only offset matters.
+            Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
+            Arc::new(Cursor::new(0, 8, 0, 0, 0)), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "is\nthe", "The lines is incorrect");
