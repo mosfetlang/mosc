@@ -5,6 +5,7 @@ use crate::io::{Reader, Span};
 use crate::parsers::{ParserContext, ParserResult};
 
 mod numbers;
+pub mod integer;
 
 /// A literal value in the Mosfet language, like a number, string, etc.
 #[derive(Debug)]
@@ -42,31 +43,29 @@ impl Literal {
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::ToBigInt;
-    use num_rational::BigRational;
-
     use super::*;
 
-    #[test]
-    fn test_parse_number() {
-        // Decimal without prefix.
-        let mut reader = Reader::from_str("25/rest");
-        let literal = Literal::parse(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        if let Literal::Number(number) = literal {
-            assert_eq!(number.span().content(), "25", "The span is incorrect");
-            assert_eq!(
-                number.number(),
-                &BigRational::from_integer(ToBigInt::to_bigint(&25).unwrap()),
-                "The number is incorrect"
-            );
-        }
-        // FIXME(juliotpaez): uncomment when there are more literals.
-        // else {
-        //     panic!("The literal is incorrect");
-        // }
-    }
+// TODO
+    // #[test]
+    // fn test_parse_number() {
+    //     // Decimal without prefix.
+    //     let mut reader = Reader::from_str("25/rest");
+    //     let literal = Literal::parse(&mut reader, &ParserContext::default())
+    //         .expect("The parser must succeed");
+    //
+    //     if let Literal::Number(number) = literal {
+    //         assert_eq!(number.span().content(), "25", "The span is incorrect");
+    //         assert_eq!(
+    //             number.number(),
+    //             &BigRational::from_integer(ToBigInt::to_bigint(&25).unwrap()),
+    //             "The number is incorrect"
+    //         );
+    //     }
+    //     // FIXME(juliotpaez): uncomment when there are more literals.
+    //     // else {
+    //     //     panic!("The literal is incorrect");
+    //     // }
+    // }
 
     #[test]
     fn test_parse_err_not_found() {

@@ -1,30 +1,27 @@
 use std::ops::RangeInclusive;
 
-use num_bigint::BigInt;
-use num_rational::BigRational;
-
 use crate::errors::ParserError;
 use crate::io::{Reader, Span};
-use crate::parsers::utils::cursor_manager;
 use crate::parsers::{ParserContext, ParserResult};
+use crate::parsers::utils::cursor_manager;
 
 static BINARY_PREFIX: &str = "0b";
 static OCTAL_PREFIX: &str = "0o";
 static DECIMAL_PREFIX: &str = "0d";
 static HEXADECIMAL_PREFIX: &str = "0x";
-static BINARY_CHARS: [RangeInclusive<char>; 1] = ['0'..='1'];
-static OCTAL_CHARS: [RangeInclusive<char>; 1] = ['0'..='7'];
-static DECIMAL_CHARS: [RangeInclusive<char>; 1] = ['0'..='9'];
-static HEXADECIMAL_CHARS: [RangeInclusive<char>; 3] = ['0'..='9', 'A'..='F', 'a'..='f'];
-static SEPARATOR_RANGE: [RangeInclusive<char>; 1] = ['_'..='_'];
+static BINARY_CHARS: &[RangeInclusive<char>] = &['0'..='1'];
+static OCTAL_CHARS: &[RangeInclusive<char>] = &['0'..='7'];
+static DECIMAL_CHARS: &[RangeInclusive<char>] = &['0'..='9'];
+static HEXADECIMAL_CHARS: &[RangeInclusive<char>] = &['0'..='9', 'A'..='F', 'a'..='f'];
+static SEPARATOR_RANGE: &[RangeInclusive<char>] = &['_'..='_'];
 
 /// A number in the Mosfet language.
 /// Can be written in binary(`0b`), octal(`0o`), decimal(`0d`) and hexadecimal(`0x`),
 /// using their own prefix. For decimal can be omitted.
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Number {
     span: Span,
-    number: BigRational,
+    // number: BigRational,
 }
 
 impl Number {
@@ -35,10 +32,10 @@ impl Number {
         &self.span
     }
 
-    /// The number value.
-    pub fn number(&self) -> &BigRational {
-        &self.number
-    }
+    // /// The number value.
+    // pub fn number(&self) -> &BigRational {
+    //     &self.number
+    // }
 
     // STATIC METHODS ---------------------------------------------------------
 
@@ -126,9 +123,9 @@ impl Number {
 
             let span = reader.substring_to_current(&init_cursor);
             Ok(Number {
-                number: BigRational::from_integer(
-                    BigInt::parse_bytes(span.content().replace("_", "").as_bytes(), radix).unwrap(),
-                ),
+                // number: BigRational::from_integer(
+                //     BigInt::parse_bytes(span.content().replace("_", "").as_bytes(), radix).unwrap(),
+                // ),
                 span,
             })
         })
@@ -141,245 +138,7 @@ impl Number {
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::ToBigInt;
+    // use super::*;
 
-    use super::*;
-
-    #[test]
-    fn test_parse_number() {
-        // Decimal without prefix.
-        let mut reader = Reader::from_str("25/rest");
-        let number =
-            Number::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
-
-        assert_eq!(number.span().content(), "25", "The span is incorrect");
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&25).unwrap()),
-            "The number is incorrect"
-        );
-
-        // Binary with prefix.
-        let mut reader = Reader::from_str("0b10/rest");
-        let number =
-            Number::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
-
-        assert_eq!(number.span().content(), "0b10", "The span is incorrect");
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&0b10).unwrap()),
-            "The number is incorrect"
-        );
-
-        // Octal with prefix.
-        let mut reader = Reader::from_str("0o74/rest");
-        let number =
-            Number::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
-
-        assert_eq!(number.span().content(), "0o74", "The span is incorrect");
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&0o74).unwrap()),
-            "The number is incorrect"
-        );
-
-        // Decimal with prefix.
-        let mut reader = Reader::from_str("0d53/rest");
-        let number =
-            Number::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
-
-        assert_eq!(number.span().content(), "0d53", "The span is incorrect");
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&53).unwrap()),
-            "The number is incorrect"
-        );
-
-        // Hexadecimal with prefix.
-        let mut reader = Reader::from_str("0x123/rest");
-        let number =
-            Number::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
-
-        assert_eq!(number.span().content(), "0x123", "The span is incorrect");
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&0x123).unwrap()),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_binary() {
-        let mut reader = Reader::from_str("10101010102/rest");
-        let number = Number::parse_binary(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        assert_eq!(
-            number.span().content(),
-            "1010101010",
-            "The span is incorrect"
-        );
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&0b1010101010).unwrap()),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_binary_with_underscores() {
-        let mut reader = Reader::from_str("101_01_____0101____02/rest");
-        let number = Number::parse_binary(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        assert_eq!(
-            number.span().content(),
-            "101_01_____0101____0",
-            "The span is incorrect"
-        );
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&0b1010101010).unwrap()),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_octal() {
-        let mut reader = Reader::from_str("12345670/rest");
-        let number = Number::parse_octal(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        assert_eq!(number.span().content(), "12345670", "The span is incorrect");
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&0o12345670).unwrap()),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_octal_with_underscores() {
-        let mut reader = Reader::from_str("12_34_____56___70/rest");
-        let number = Number::parse_octal(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        assert_eq!(
-            number.span().content(),
-            "12_34_____56___70",
-            "The span is incorrect"
-        );
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&0o12345670).unwrap()),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_decimal() {
-        let mut reader = Reader::from_str("1234567890/rest");
-        let number = Number::parse_decimal(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        assert_eq!(
-            number.span().content(),
-            "1234567890",
-            "The span is incorrect"
-        );
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&1234567890).unwrap()),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_decimal_with_underscores() {
-        let mut reader = Reader::from_str("1_234_____567___890/rest");
-        let number = Number::parse_decimal(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        assert_eq!(
-            number.span().content(),
-            "1_234_____567___890",
-            "The span is incorrect"
-        );
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(ToBigInt::to_bigint(&1234567890).unwrap()),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_hexadecimal() {
-        let mut reader = Reader::from_str("1234567890abcdefABCDEF/rest");
-        let number = Number::parse_hexadecimal(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        assert_eq!(
-            number.span().content(),
-            "1234567890abcdefABCDEF",
-            "The span is incorrect"
-        );
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(
-                ToBigInt::to_bigint(&(0x1234567890abcdefABCDEF as i128)).unwrap()
-            ),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_hexadecimal_with_underscores() {
-        let mut reader = Reader::from_str("12_345678______90ab____cdefA____BCDEF/rest");
-        let number = Number::parse_hexadecimal(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
-
-        assert_eq!(
-            number.span().content(),
-            "12_345678______90ab____cdefA____BCDEF",
-            "The span is incorrect"
-        );
-        assert_eq!(
-            number.number(),
-            &BigRational::from_integer(
-                ToBigInt::to_bigint(&(0x1234567890abcdefABCDEF as i128)).unwrap()
-            ),
-            "The number is incorrect"
-        );
-    }
-
-    #[test]
-    fn test_parse_err_not_found() {
-        let mut reader = Reader::from_str("test");
-        let error = Number::parse(&mut reader, &ParserContext::default())
-            .expect_err("The parser must not succeed");
-
-        assert!(
-            error.variant_eq(&ParserError::NotFound),
-            "The error is incorrect"
-        );
-        assert_eq!(reader.offset(), 0, "The offset is incorrect");
-
-        // Check after prefix.
-        for prefix in &[
-            BINARY_PREFIX,
-            OCTAL_PREFIX,
-            DECIMAL_PREFIX,
-            HEXADECIMAL_PREFIX,
-        ] {
-            let mut reader = Reader::from_str(prefix);
-            let error = Number::parse(&mut reader, &ParserContext::default())
-                .expect_err("The parser must not succeed");
-
-            assert!(
-                error.variant_eq(&ParserError::NotFound),
-                "The error is incorrect"
-            );
-            assert_eq!(reader.offset(), 0, "The offset is incorrect");
-        }
-    }
+// TODO
 }
