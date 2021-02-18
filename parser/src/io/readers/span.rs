@@ -16,20 +16,15 @@ impl Span {
     // CONSTRUCTORS -----------------------------------------------------------
 
     /// Builds a new `Span` with the specified data.
-    pub(in crate) fn new(content: Arc<String>, start_cursor: Arc<Cursor>, end_cursor: Arc<Cursor>) -> Span {
+    pub(in crate) fn new(
+        content: Arc<String>,
+        start_cursor: Arc<Cursor>,
+        end_cursor: Arc<Cursor>,
+    ) -> Span {
         Span {
             content,
             start_cursor,
             end_cursor,
-        }
-    }
-
-    /// Builds a new empty `Span`.
-    pub(in crate) fn new_empty() -> Span {
-        Span {
-            content: Arc::new("".to_string()),
-            start_cursor: Arc::new(Cursor::new_empty()),
-            end_cursor: Arc::new(Cursor::new_empty()),
         }
     }
 

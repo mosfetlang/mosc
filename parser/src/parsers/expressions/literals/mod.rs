@@ -4,8 +4,8 @@ use crate::errors::ParserError;
 use crate::io::{Reader, Span};
 use crate::parsers::{ParserContext, ParserResult};
 
-mod numbers;
 pub mod integer;
+mod numbers;
 
 /// A literal value in the Mosfet language, like a number, string, etc.
 #[derive(Debug)]
@@ -45,7 +45,7 @@ impl Literal {
 mod tests {
     use super::*;
 
-// TODO
+    // TODO
     // #[test]
     // fn test_parse_number() {
     //     // Decimal without prefix.

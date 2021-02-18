@@ -2,8 +2,8 @@ use std::ops::RangeInclusive;
 
 use crate::errors::ParserError;
 use crate::io::{Reader, Span};
-use crate::parsers::{ParserContext, ParserResult};
 use crate::parsers::utils::cursor_manager;
+use crate::parsers::{ParserContext, ParserResult};
 
 static BINARY_PREFIX: &str = "0b";
 static OCTAL_PREFIX: &str = "0o";
@@ -140,5 +140,5 @@ impl Number {
 mod tests {
     // use super::*;
 
-// TODO
+    // TODO
 }

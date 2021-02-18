@@ -1,8 +1,8 @@
 use crate::errors::ParserError;
 use crate::io::{Reader, Span};
-use crate::parsers::{ParserContext, ParserResult};
 use crate::parsers::commons::identifier::Identifier;
 use crate::parsers::expressions::literals::Literal;
+use crate::parsers::{ParserContext, ParserResult};
 
 pub mod literals;
 
@@ -52,7 +52,7 @@ impl Expression {
 mod tests {
     use super::*;
 
-// TODO
+    // TODO
     // #[test]
     // fn test_parse_literal() {
     //     let mut reader = Reader::from_str("25/rest");

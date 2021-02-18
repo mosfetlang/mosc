@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::errors::ParserError;
 use crate::io::{Reader, Span};
-use crate::ParserNode;
-use crate::parsers::{ParserContext, ParserResult};
 use crate::parsers::utils::cursor_manager;
+use crate::parsers::{ParserContext, ParserResult};
+use crate::ParserNode;
 
 static BINARY_PREFIX: &str = "0b";
 static OCTAL_PREFIX: &str = "0o";
@@ -51,7 +51,7 @@ impl IntegerNumber {
                 Radix::Binary => BINARY_PREFIX,
                 Radix::Octal => OCTAL_PREFIX,
                 Radix::Decimal => DECIMAL_PREFIX,
-                Radix::Hexadecimal => HEXADECIMAL_PREFIX
+                Radix::Hexadecimal => HEXADECIMAL_PREFIX,
             }
         } else {
             ""
@@ -113,22 +113,34 @@ impl IntegerNumber {
     }
 
     /// Parses a binary `IntegerNumber` without prefix.
-    pub fn parse_binary(reader: &mut Reader, context: &ParserContext) -> ParserResult<IntegerNumber> {
+    pub fn parse_binary(
+        reader: &mut Reader,
+        context: &ParserContext,
+    ) -> ParserResult<IntegerNumber> {
         Self::parse_number(reader, context, &BINARY_CHARS, Radix::Binary)
     }
 
     /// Parses an octal `IntegerNumber` without prefix.
-    pub fn parse_octal(reader: &mut Reader, context: &ParserContext) -> ParserResult<IntegerNumber> {
+    pub fn parse_octal(
+        reader: &mut Reader,
+        context: &ParserContext,
+    ) -> ParserResult<IntegerNumber> {
         Self::parse_number(reader, context, &OCTAL_CHARS, Radix::Octal)
     }
 
     /// Parses a decimal `IntegerNumber` without prefix.
-    pub fn parse_decimal(reader: &mut Reader, context: &ParserContext) -> ParserResult<IntegerNumber> {
+    pub fn parse_decimal(
+        reader: &mut Reader,
+        context: &ParserContext,
+    ) -> ParserResult<IntegerNumber> {
         Self::parse_number(reader, context, &DECIMAL_CHARS, Radix::Decimal)
     }
 
     /// Parses an hexadecimal `IntegerNumber` without prefix.
-    pub fn parse_hexadecimal(reader: &mut Reader, context: &ParserContext) -> ParserResult<IntegerNumber> {
+    pub fn parse_hexadecimal(
+        reader: &mut Reader,
+        context: &ParserContext,
+    ) -> ParserResult<IntegerNumber> {
         Self::parse_number(reader, context, &HEXADECIMAL_CHARS, Radix::Hexadecimal)
     }
 
@@ -190,53 +202,80 @@ mod tests {
     fn test_parse() {
         // Decimal without prefix.
         let mut reader = Reader::from_str("25/rest");
-        let number =
-            IntegerNumber::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
+        let number = IntegerNumber::parse(&mut reader, &ParserContext::default())
+            .expect("The parser must succeed");
 
         assert_eq!(number.content(), "25", "The content is incorrect");
-        assert_eq!(number.digits().content(), "25", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
+        assert_eq!(
+            number.digits().content(),
+            "25",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
         assert_eq!(number.radix, Radix::Decimal, "The radix field is incorrect");
 
         // Binary with prefix.
         let mut reader = Reader::from_str("0b10/rest");
-        let number =
-            IntegerNumber::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
+        let number = IntegerNumber::parse(&mut reader, &ParserContext::default())
+            .expect("The parser must succeed");
 
         assert_eq!(number.content(), "0b10", "The content is incorrect");
-        assert_eq!(number.digits().content(), "10", "The digits field is incorrect");
+        assert_eq!(
+            number.digits().content(),
+            "10",
+            "The digits field is incorrect"
+        );
         assert_eq!(number.has_prefix, true, "The has_prefix field is incorrect");
         assert_eq!(number.radix, Radix::Binary, "The radix field is incorrect");
 
         // Octal with prefix.
         let mut reader = Reader::from_str("0o74/rest");
-        let number =
-            IntegerNumber::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
+        let number = IntegerNumber::parse(&mut reader, &ParserContext::default())
+            .expect("The parser must succeed");
 
         assert_eq!(number.content(), "0o74", "The content is incorrect");
-        assert_eq!(number.digits().content(), "74", "The digits field is incorrect");
+        assert_eq!(
+            number.digits().content(),
+            "74",
+            "The digits field is incorrect"
+        );
         assert_eq!(number.has_prefix, true, "The has_prefix field is incorrect");
         assert_eq!(number.radix, Radix::Octal, "The radix field is incorrect");
 
         // Decimal with prefix.
         let mut reader = Reader::from_str("0d53/rest");
-        let number =
-            IntegerNumber::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
+        let number = IntegerNumber::parse(&mut reader, &ParserContext::default())
+            .expect("The parser must succeed");
 
         assert_eq!(number.content(), "0d53", "The content is incorrect");
-        assert_eq!(number.digits().content(), "53", "The digits field is incorrect");
+        assert_eq!(
+            number.digits().content(),
+            "53",
+            "The digits field is incorrect"
+        );
         assert_eq!(number.has_prefix, true, "The has_prefix field is incorrect");
         assert_eq!(number.radix, Radix::Decimal, "The radix field is incorrect");
 
         // Hexadecimal with prefix.
         let mut reader = Reader::from_str("0x123/rest");
-        let number =
-            IntegerNumber::parse(&mut reader, &ParserContext::default()).expect("The parser must succeed");
+        let number = IntegerNumber::parse(&mut reader, &ParserContext::default())
+            .expect("The parser must succeed");
 
         assert_eq!(number.content(), "0x123", "The content is incorrect");
-        assert_eq!(number.digits().content(), "123", "The digits field is incorrect");
+        assert_eq!(
+            number.digits().content(),
+            "123",
+            "The digits field is incorrect"
+        );
         assert_eq!(number.has_prefix, true, "The has_prefix field is incorrect");
-        assert_eq!(number.radix, Radix::Hexadecimal, "The radix field is incorrect");
+        assert_eq!(
+            number.radix,
+            Radix::Hexadecimal,
+            "The radix field is incorrect"
+        );
     }
 
     #[test]
@@ -246,8 +285,15 @@ mod tests {
             .expect("The parser must succeed");
 
         assert_eq!(number.content(), "1010101010", "The content is incorrect");
-        assert_eq!(number.digits().content(), "1010101010", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
+        assert_eq!(
+            number.digits().content(),
+            "1010101010",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
         assert_eq!(number.radix, Radix::Binary, "The radix field is incorrect");
     }
 
@@ -257,9 +303,20 @@ mod tests {
         let number = IntegerNumber::parse_binary(&mut reader, &ParserContext::default())
             .expect("The parser must succeed");
 
-        assert_eq!(number.content(), "101_01_____0101____0", "The content is incorrect");
-        assert_eq!(number.digits().content(), "101_01_____0101____0", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
+        assert_eq!(
+            number.content(),
+            "101_01_____0101____0",
+            "The content is incorrect"
+        );
+        assert_eq!(
+            number.digits().content(),
+            "101_01_____0101____0",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
         assert_eq!(number.radix, Radix::Binary, "The radix field is incorrect");
     }
 
@@ -270,8 +327,15 @@ mod tests {
             .expect("The parser must succeed");
 
         assert_eq!(number.content(), "12345670", "The content is incorrect");
-        assert_eq!(number.digits().content(), "12345670", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
+        assert_eq!(
+            number.digits().content(),
+            "12345670",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
         assert_eq!(number.radix, Radix::Octal, "The radix field is incorrect");
     }
 
@@ -281,9 +345,20 @@ mod tests {
         let number = IntegerNumber::parse_octal(&mut reader, &ParserContext::default())
             .expect("The parser must succeed");
 
-        assert_eq!(number.content(), "12_34_____56___70", "The content is incorrect");
-        assert_eq!(number.digits().content(), "12_34_____56___70", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
+        assert_eq!(
+            number.content(),
+            "12_34_____56___70",
+            "The content is incorrect"
+        );
+        assert_eq!(
+            number.digits().content(),
+            "12_34_____56___70",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
         assert_eq!(number.radix, Radix::Octal, "The radix field is incorrect");
     }
 
@@ -294,8 +369,15 @@ mod tests {
             .expect("The parser must succeed");
 
         assert_eq!(number.content(), "1234567890", "The content is incorrect");
-        assert_eq!(number.digits().content(), "1234567890", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
+        assert_eq!(
+            number.digits().content(),
+            "1234567890",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
         assert_eq!(number.radix, Radix::Decimal, "The radix field is incorrect");
     }
 
@@ -305,9 +387,20 @@ mod tests {
         let number = IntegerNumber::parse_decimal(&mut reader, &ParserContext::default())
             .expect("The parser must succeed");
 
-        assert_eq!(number.content(), "1_234_____567___890", "The content is incorrect");
-        assert_eq!(number.digits().content(), "1_234_____567___890", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
+        assert_eq!(
+            number.content(),
+            "1_234_____567___890",
+            "The content is incorrect"
+        );
+        assert_eq!(
+            number.digits().content(),
+            "1_234_____567___890",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
         assert_eq!(number.radix, Radix::Decimal, "The radix field is incorrect");
     }
 
@@ -317,10 +410,25 @@ mod tests {
         let number = IntegerNumber::parse_hexadecimal(&mut reader, &ParserContext::default())
             .expect("The parser must succeed");
 
-        assert_eq!(number.content(), "1234567890abcdefABCDEF", "The content is incorrect");
-        assert_eq!(number.digits().content(), "1234567890abcdefABCDEF", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
-        assert_eq!(number.radix, Radix::Hexadecimal, "The radix field is incorrect");
+        assert_eq!(
+            number.content(),
+            "1234567890abcdefABCDEF",
+            "The content is incorrect"
+        );
+        assert_eq!(
+            number.digits().content(),
+            "1234567890abcdefABCDEF",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
+        assert_eq!(
+            number.radix,
+            Radix::Hexadecimal,
+            "The radix field is incorrect"
+        );
     }
 
     #[test]
@@ -329,10 +437,25 @@ mod tests {
         let number = IntegerNumber::parse_hexadecimal(&mut reader, &ParserContext::default())
             .expect("The parser must succeed");
 
-        assert_eq!(number.content(), "12_345678______90ab____cdefA____BCDEF", "The content is incorrect");
-        assert_eq!(number.digits().content(), "12_345678______90ab____cdefA____BCDEF", "The digits field is incorrect");
-        assert_eq!(number.has_prefix, false, "The has_prefix field is incorrect");
-        assert_eq!(number.radix, Radix::Hexadecimal, "The radix field is incorrect");
+        assert_eq!(
+            number.content(),
+            "12_345678______90ab____cdefA____BCDEF",
+            "The content is incorrect"
+        );
+        assert_eq!(
+            number.digits().content(),
+            "12_345678______90ab____cdefA____BCDEF",
+            "The digits field is incorrect"
+        );
+        assert_eq!(
+            number.has_prefix, false,
+            "The has_prefix field is incorrect"
+        );
+        assert_eq!(
+            number.radix,
+            Radix::Hexadecimal,
+            "The radix field is incorrect"
+        );
     }
 
     #[test]

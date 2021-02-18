@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use bytecount::num_chars;
 use memchr::Memchr;
@@ -111,11 +111,7 @@ impl Reader {
     /// Returns an empty `Span` located at the current position.
     pub fn span_at_offset(&self) -> Span {
         let cursor = Arc::new(self.cursor.clone());
-        Span::new(
-            self.content.clone(),
-            cursor.clone(),
-            cursor,
-        )
+        Span::new(self.content.clone(), cursor.clone(), cursor)
     }
 
     // METHODS ----------------------------------------------------------------
@@ -336,7 +332,11 @@ impl Reader {
             (to, from)
         };
 
-        Span::new(self.content.clone(), Arc::new(from.clone()), Arc::new(to.clone()))
+        Span::new(
+            self.content.clone(),
+            Arc::new(from.clone()),
+            Arc::new(to.clone()),
+        )
     }
 
     /// Gets a `Span` that contains the susbstring delimited by `cursor` and current cursors.
@@ -371,7 +371,11 @@ impl Reader {
             (&self.cursor, cursor)
         };
 
-        Span::new(self.content.clone(), Arc::new(from.clone()), Arc::new(to.clone()))
+        Span::new(
+            self.content.clone(),
+            Arc::new(from.clone()),
+            Arc::new(to.clone()),
+        )
     }
 
     /// Builds a new `Cursor` at the current position of the `Reader`.
