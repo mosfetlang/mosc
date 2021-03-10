@@ -1,13 +1,15 @@
 use std::ops::RangeInclusive;
+use std::sync::Arc;
 
 use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::result::ParserResult;
 use crate::parsers::utils::cursor_manager;
 use crate::parsers::ParserResultError;
+use crate::ParserNode;
 
 // Follow UCD specification: https://www.unicode.org/Public/13.0.0/ucd/PropList.txt
-static WHITESPACE_CHARS: [RangeInclusive<char>; 8] = [
+pub static WHITESPACE_CHARS: [RangeInclusive<char>; 8] = [
     '\u{9}'..='\u{9}',
     '\u{20}'..='\u{20}',
     '\u{A0}'..='\u{A0}',
@@ -18,7 +20,7 @@ static WHITESPACE_CHARS: [RangeInclusive<char>; 8] = [
     '\u{3000}'..='\u{3000}',
 ];
 // Follow UCD specification: https://www.unicode.org/Public/13.0.0/ucd/PropList.txt
-static MULTILINE_WHITESPACE_CHARS: [RangeInclusive<char>; 3] = [
+pub static MULTILINE_WHITESPACE_CHARS: [RangeInclusive<char>; 3] = [
     '\u{A}'..='\u{D}',
     '\u{85}'..='\u{85}',
     '\u{2028}'..='\u{2029}',
@@ -27,17 +29,12 @@ static MULTILINE_WHITESPACE_CHARS: [RangeInclusive<char>; 3] = [
 /// A valid name in the Mosfet language.
 #[derive(Debug)]
 pub struct Whitespace {
-    span: Span,
+    span: Arc<Span>,
     is_multiline: bool,
 }
 
 impl Whitespace {
     // GETTERS ----------------------------------------------------------------
-
-    /// The span of the node.
-    pub fn span(&self) -> &Span {
-        &self.span
-    }
 
     /// Whether it is a multiline whitespaces or not.
     pub fn is_multiline(&self) -> bool {
@@ -53,7 +50,7 @@ impl Whitespace {
     ) -> ParserResult<Whitespace> {
         cursor_manager(reader, |reader, init_cursor| {
             if let Some(_) = reader.read_many_of(&WHITESPACE_CHARS) {
-                let span = reader.substring_to_current(&init_cursor);
+                let span = Arc::new(reader.substring_to_current(&init_cursor));
                 Ok(Whitespace {
                     span,
                     is_multiline: false,
@@ -90,12 +87,18 @@ impl Whitespace {
             }
 
             if any {
-                let span = reader.substring_to_current(&init_cursor);
+                let span = Arc::new(reader.substring_to_current(&init_cursor));
                 Ok(Whitespace { span, is_multiline })
             } else {
                 Err(ParserResultError::NotFound)
             }
         })
+    }
+}
+
+impl ParserNode for Whitespace {
+    fn span(&self) -> &Arc<Span> {
+        &self.span
     }
 }
 

@@ -108,6 +108,11 @@ impl Number {
         let decimal_digits = number.decimal_digits.as_ref().unwrap();
         let content = decimal_digits.content();
         let new_content = content.trim_end_matches("0");
+
+        if new_content.len() == content.len() {
+            return;
+        }
+
         let mut number_of_zeroes = content.len() - new_content.len();
 
         if new_content.len() == 0 {
@@ -174,8 +179,6 @@ mod tests {
         let mut context = ParserContext::default();
         Number::parse(&mut reader, &mut context).expect("The parser must succeed");
 
-        println!("{}", context.messages()[0].to_ansi_text());
-
         assert_warning(&context, ParserWarning::NumberWithTrailingZeroes);
 
         for prefix in &[
@@ -187,8 +190,6 @@ mod tests {
             let mut reader = Reader::from_str(format!("{}0.000", prefix).as_str());
             let mut context = ParserContext::default();
             Number::parse(&mut reader, &mut context).expect("The parser must succeed");
-
-            println!("{}", context.messages()[0].to_ansi_text());
 
             assert_warning(&context, ParserWarning::NumberWithTrailingZeroes);
         }
@@ -208,23 +209,25 @@ mod tests {
 
     #[test]
     fn test_warning_trailing_zeroes_ignores_0() {
-        let mut reader = Reader::from_str("0.0");
-        let mut context = ParserContext::default();
-        Number::parse(&mut reader, &mut context).expect("The parser must succeed");
-
-        assert_eq!(context.messages().len(), 0, "There must no be messages");
-
-        for prefix in &[
-            BINARY_PREFIX,
-            OCTAL_PREFIX,
-            DECIMAL_PREFIX,
-            HEXADECIMAL_PREFIX,
-        ] {
-            let mut reader = Reader::from_str(format!("{}0.0", prefix).as_str());
+        for number in &["0.0", "1.1", "10101.10101"] {
+            let mut reader = Reader::from_str(number);
             let mut context = ParserContext::default();
-            IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
+            Number::parse(&mut reader, &mut context).expect("The parser must succeed");
 
             assert_eq!(context.messages().len(), 0, "There must no be messages");
+
+            for prefix in &[
+                BINARY_PREFIX,
+                OCTAL_PREFIX,
+                DECIMAL_PREFIX,
+                HEXADECIMAL_PREFIX,
+            ] {
+                let mut reader = Reader::from_str(format!("{}{}", prefix, number).as_str());
+                let mut context = ParserContext::default();
+                IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
+
+                assert_eq!(context.messages().len(), 0, "There must no be messages");
+            }
         }
     }
 }

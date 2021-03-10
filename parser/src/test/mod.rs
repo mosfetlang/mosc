@@ -77,3 +77,17 @@ pub fn assert_error(context: &ParserContext, error: &ParserResultError, error_ty
         _ => panic!("The eid must be the last block"),
     }
 }
+
+pub fn assert_not_found(context: &ParserContext, error: &ParserResultError, offset: usize) {
+    assert_eq!(
+        context.messages().len(),
+        0,
+        "There must no be messages in context"
+    );
+    assert_eq!(
+        error,
+        &ParserResultError::NotFound,
+        "The error is incorrect"
+    );
+    assert_eq!(offset, 0, "The offset is incorrect");
+}

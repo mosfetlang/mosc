@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::commons::identifier::Identifier;
@@ -6,6 +8,7 @@ use crate::parsers::expressions::Expression;
 use crate::parsers::result::ParserResult;
 use crate::parsers::utils::cursor_manager;
 use crate::parsers::ParserResultError;
+use crate::ParserNode;
 
 static KEYWORD: &str = "let";
 static ASSIGN_OPERATOR: &str = "=";
@@ -13,18 +16,13 @@ static ASSIGN_OPERATOR: &str = "=";
 /// A variable declaration with a compulsory expression.
 #[derive(Debug)]
 pub struct VariableDeclaration {
-    span: Span,
+    span: Arc<Span>,
     name: Identifier,
     expression: Expression,
 }
 
 impl VariableDeclaration {
     // GETTERS ----------------------------------------------------------------
-
-    /// The span of the node.
-    pub fn span(&self) -> &Span {
-        &self.span
-    }
 
     /// The name of the variable declaration.
     pub fn name(&self) -> &Identifier {
@@ -90,7 +88,7 @@ impl VariableDeclaration {
                 }
             };
 
-            let span = reader.substring_to_current(&init_cursor);
+            let span = Arc::new(reader.substring_to_current(&init_cursor));
             Ok(VariableDeclaration {
                 span,
                 name,
@@ -100,13 +98,19 @@ impl VariableDeclaration {
     }
 }
 
+impl ParserNode for VariableDeclaration {
+    fn span(&self) -> &Arc<Span> {
+        &self.span
+    }
+}
+
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
-    use crate::test::assert_error;
+    use crate::test::{assert_error, assert_not_found};
     use crate::ParserError;
 
     use super::*;
@@ -147,8 +151,7 @@ mod tests {
         let error = VariableDeclaration::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");
 
-        assert_eq!(error, ParserResultError::NotFound, "The error is incorrect");
-        assert_eq!(reader.offset(), 0, "The offset is incorrect");
+        assert_not_found(&context, &error, 0);
     }
 
     #[test]

@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
 pub use return_statement::*;
 pub use variable_declaration::*;
 
 use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::{ParserResult, ParserResultError};
+use crate::ParserNode;
 
 mod return_statement;
 mod variable_declaration;
@@ -11,8 +14,8 @@ mod variable_declaration;
 /// A statement in the Mosfet language, like a variable declaration.
 #[derive(Debug)]
 pub enum Statement {
-    VariableDeclaration(VariableDeclaration),
-    ReturnStatement(ReturnStatement),
+    VariableDeclaration(Arc<VariableDeclaration>),
+    ReturnStatement(Arc<ReturnStatement>),
 }
 
 impl Statement {
@@ -31,18 +34,27 @@ impl Statement {
     /// Parses a statement.
     pub fn parse(reader: &mut Reader, context: &mut ParserContext) -> ParserResult<Statement> {
         match VariableDeclaration::parse(reader, context) {
-            Ok(node) => return Ok(Statement::VariableDeclaration(node)),
+            Ok(node) => return Ok(Statement::VariableDeclaration(Arc::new(node))),
             Err(ParserResultError::NotFound) => { /* Ignore because not found */ }
             Err(ParserResultError::Error) => return Err(ParserResultError::Error),
         }
 
         match ReturnStatement::parse(reader, context) {
-            Ok(node) => return Ok(Statement::ReturnStatement(node)),
+            Ok(node) => return Ok(Statement::ReturnStatement(Arc::new(node))),
             Err(ParserResultError::NotFound) => { /* Ignore because not found */ }
             Err(ParserResultError::Error) => return Err(ParserResultError::Error),
         }
 
         Err(ParserResultError::NotFound)
+    }
+}
+
+impl ParserNode for Statement {
+    fn span(&self) -> &Arc<Span> {
+        match self {
+            Statement::VariableDeclaration(n) => n.span(),
+            Statement::ReturnStatement(n) => n.span(),
+        }
     }
 }
 
@@ -53,6 +65,7 @@ impl Statement {
 #[cfg(test)]
 mod tests {
     use crate::parsers::expressions::Expression;
+    use crate::test::assert_not_found;
 
     use super::*;
 
@@ -100,7 +113,6 @@ mod tests {
         let error =
             Statement::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
 
-        assert_eq!(error, ParserResultError::NotFound, "The error is incorrect");
-        assert_eq!(reader.offset(), 0, "The offset is incorrect");
+        assert_not_found(&context, &error, 0);
     }
 }

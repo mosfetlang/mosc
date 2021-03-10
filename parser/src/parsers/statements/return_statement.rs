@@ -1,28 +1,27 @@
+use std::sync::Arc;
+
 use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::commons::identifier::Identifier;
 use crate::parsers::commons::whitespaces::Whitespace;
 use crate::parsers::expressions::Expression;
 use crate::parsers::result::ParserResult;
-use crate::parsers::utils::cursor_manager;
+use crate::parsers::utils::{cursor_manager, generate_error_log, generate_source_code};
 use crate::parsers::ParserResultError;
+use crate::ParserError::MissingExpressionInReturnStatement;
+use crate::{ParserError, ParserNode};
 
 static KEYWORD: &str = "return";
 
 /// A return statement with a compulsory expression.
 #[derive(Debug)]
 pub struct ReturnStatement {
-    span: Span,
+    span: Arc<Span>,
     expression: Expression,
 }
 
 impl ReturnStatement {
     // GETTERS ----------------------------------------------------------------
-
-    /// The span of the node.
-    pub fn span(&self) -> &Span {
-        &self.span
-    }
 
     /// The expression of the return statement.
     pub fn expression(&self) -> &Expression {
@@ -46,19 +45,33 @@ impl ReturnStatement {
             let expression = match Expression::parse(reader, context) {
                 Ok(v) => v,
                 Err(_) => {
-                    // TODO improve with a log.
+                    context.add_message(generate_error_log(
+                        ParserError::MissingExpressionInReturnStatement,
+                        "An expression was expected to specify the value to return".to_string(),
+                        |log| {
+                            generate_source_code(log, &reader, |doc| {
+                                doc.highlight_cursor_str(
+                                    reader.offset(),
+                                    Some("Insert an expression here"),
+                                    None,
+                                )
+                            })
+                        },
+                    ));
+
                     return Err(ParserResultError::Error);
-                    // return Err(ParserError::MissingExpressionInReturnStatement(
-                    //     whitespace
-                    //         .map(|node| node.span().start_cursor().clone())
-                    //         .unwrap_or(reader.save()),
-                    // ));
                 }
             };
 
-            let span = reader.substring_to_current(&init_cursor);
+            let span = Arc::new(reader.substring_to_current(&init_cursor));
             Ok(ReturnStatement { span, expression })
         })
+    }
+}
+
+impl ParserNode for ReturnStatement {
+    fn span(&self) -> &Arc<Span> {
+        &self.span
     }
 }
 
@@ -68,7 +81,7 @@ impl ReturnStatement {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::assert_error;
+    use crate::test::{assert_error, assert_not_found};
     use crate::ParserError;
 
     use super::*;
@@ -95,8 +108,7 @@ mod tests {
         let error = ReturnStatement::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");
 
-        assert_eq!(error, ParserResultError::NotFound, "The error is incorrect");
-        assert_eq!(reader.offset(), 0, "The offset is incorrect");
+        assert_not_found(&context, &error, 0);
     }
 
     #[test]

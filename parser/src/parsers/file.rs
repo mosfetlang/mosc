@@ -1,9 +1,11 @@
+use doclog::Color;
+
 use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::commons::whitespaces::Whitespace;
 use crate::parsers::result::ParserResult;
 use crate::parsers::statements::Statement;
-use crate::parsers::utils::cursor_manager;
+use crate::parsers::utils::{cursor_manager, generate_error_log, generate_source_code};
 use crate::parsers::ParserResultError;
 use crate::ParserError;
 
@@ -45,9 +47,13 @@ impl MosfetFile {
                     return if reader.remaining_length() == 0 {
                         Ok(MosfetFile { span, statements })
                     } else {
-                        // TODO improve with a log.
+                        context.add_message(generate_error_log(
+                            ParserError::NotAMosfetFile,
+                            "The file is not recognized as valid Mosfet file".to_string(),
+                            |log| log,
+                        ));
+
                         Err(ParserResultError::Error)
-                        // Err(ParserError::ExpectedEOFInFile(reader.save()))
                     };
                 }
             }
@@ -64,13 +70,21 @@ impl MosfetFile {
                             .map(|ws| ws.is_multiline())
                             .unwrap_or(false)
                         {
-                            // TODO improve with a log.
+                            context.add_message(generate_error_log(
+                                ParserError::TwoStatementsInSameLineInFile,
+                                "Two statements in the same line are forbidden".to_string(),
+                                |log| {
+                                    generate_source_code(log, &reader, |doc| {
+                                        doc.highlight_cursor_str(
+                                            statements.last().unwrap().span().end_cursor().offset(),
+                                            Some("Insert a new line (\\n) here"),
+                                            None,
+                                        )
+                                    })
+                                },
+                            ));
+
                             return Err(ParserResultError::Error);
-                            // return Err(ParserError::TwoStatementsInSameLineInFile(
-                            //     whitespace
-                            //         .map(|node| node.span().start_cursor().clone())
-                            //         .unwrap_or(reader.save()),
-                            // ));
                         }
 
                         statements.push(statement);
@@ -85,9 +99,33 @@ impl MosfetFile {
             if reader.remaining_length() == 0 {
                 Ok(MosfetFile { span, statements })
             } else {
-                // TODO improve with a log.
+                context.add_message(generate_error_log(
+                    ParserError::ExpectedEOFInFile,
+                    "The End Of File (EOF) was expected here".to_string(),
+                    |log| {
+                        let last_statement = statements.last().unwrap();
+                        generate_source_code(log, &reader, |doc| {
+                            let doc = doc.highlight_cursor_str(
+                                last_statement.span().end_cursor().offset(),
+                                Some("The file must end here"),
+                                None,
+                            );
+
+                            if reader.content().len() - reader.offset() != 0 {
+                                doc.highlight_section_str(
+                                    last_statement.span().end_cursor().offset()
+                                        ..reader.content().len(),
+                                    Some("Remove this code"),
+                                    Some(Color::Magenta),
+                                )
+                            } else {
+                                doc
+                            }
+                        })
+                    },
+                ));
+
                 Err(ParserResultError::Error)
-                // Err(ParserError::ExpectedEOFInFile(reader.save()))
             }
         })
     }
@@ -100,6 +138,7 @@ impl MosfetFile {
 #[cfg(test)]
 mod tests {
     use crate::test::assert_error;
+    use crate::ParserError;
 
     use super::*;
 
@@ -166,12 +205,12 @@ mod tests {
         let error =
             MosfetFile::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
 
-        assert_error(&context, &error, ParserError::ExpectedEOFInFile);
+        assert_error(&context, &error, ParserError::NotAMosfetFile);
     }
 
     #[test]
     fn test_parse_err_eof_after_first_statement() {
-        let mut reader = Reader::from_str(" \t  let x = 3 t");
+        let mut reader = Reader::from_str("let x = 3 t");
         let mut context = ParserContext::default();
         let error =
             MosfetFile::parse(&mut reader, &mut context).expect_err("The parser must not succeed");

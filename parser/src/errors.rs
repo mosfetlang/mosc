@@ -10,6 +10,7 @@ pub enum ParserError {
 
     MissingExpressionInReturnStatement,
 
+    NotAMosfetFile,
     ExpectedEOFInFile,
     TwoStatementsInSameLineInFile,
 }

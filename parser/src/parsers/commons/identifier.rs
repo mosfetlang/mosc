@@ -1,29 +1,26 @@
 use std::ops::RangeInclusive;
+use std::sync::Arc;
 
 use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::result::ParserResult;
 use crate::parsers::utils::cursor_manager;
 use crate::parsers::ParserResultError;
+use crate::ParserNode;
 
 // FIXME(juliotpaez): use Unicode classifications.
-static HEAD_CHARS: [RangeInclusive<char>; 3] = ['A'..='Z', '_'..='_', 'a'..='z'];
+pub static HEAD_CHARS: [RangeInclusive<char>; 3] = ['A'..='Z', '_'..='_', 'a'..='z'];
 // FIXME(juliotpaez): use Unicode classifications.
-static BODY_CHARS: [RangeInclusive<char>; 4] = ['0'..='9', 'A'..='Z', '_'..='_', 'a'..='z'];
+pub static BODY_CHARS: [RangeInclusive<char>; 4] = ['0'..='9', 'A'..='Z', '_'..='_', 'a'..='z'];
 
 /// A valid name in the Mosfet language.
 #[derive(Debug)]
 pub struct Identifier {
-    span: Span,
+    span: Arc<Span>,
 }
 
 impl Identifier {
     // GETTERS ----------------------------------------------------------------
-
-    /// The span of the node.
-    pub fn span(&self) -> &Span {
-        &self.span
-    }
 
     /// The name of the `Identifier`.
     pub fn name(&self) -> &str {
@@ -41,7 +38,7 @@ impl Identifier {
 
             reader.read_many_of(&BODY_CHARS);
 
-            let span = reader.substring_to_current(&init_cursor);
+            let span = Arc::new(reader.substring_to_current(&init_cursor));
             Ok(Identifier { span })
         })
     }
@@ -65,6 +62,12 @@ impl Identifier {
     }
 }
 
+impl ParserNode for Identifier {
+    fn span(&self) -> &Arc<Span> {
+        &self.span
+    }
+}
+
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -72,6 +75,7 @@ impl Identifier {
 #[cfg(test)]
 mod tests {
     use crate::parsers::ParserResultError;
+    use crate::test::assert_not_found;
 
     use super::*;
 
@@ -123,8 +127,7 @@ mod tests {
         let error =
             Identifier::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
 
-        assert_eq!(error, ParserResultError::NotFound, "The error is incorrect");
-        assert_eq!(reader.offset(), 0, "The offset is incorrect");
+        assert_not_found(&context, &error, 0);
     }
 
     #[test]
