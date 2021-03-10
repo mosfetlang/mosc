@@ -1,8 +1,8 @@
-use crate::errors::ParserError;
+use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::commons::identifier::Identifier;
 use crate::parsers::expressions::literals::Literal;
-use crate::parsers::{ParserContext, ParserResult};
+use crate::parsers::{ParserResult, ParserResultError};
 
 pub mod literals;
 
@@ -27,20 +27,20 @@ impl Expression {
     // STATIC METHODS ---------------------------------------------------------
 
     /// Parses an expression.
-    pub fn parse(reader: &mut Reader, context: &ParserContext) -> ParserResult<Expression> {
+    pub fn parse(reader: &mut Reader, context: &mut ParserContext) -> ParserResult<Expression> {
         match Literal::parse(reader, context) {
             Ok(node) => return Ok(Expression::Literal(node)),
-            Err(ParserError::NotFound) => { /* Ignore */ }
-            Err(e) => return Err(e),
+            Err(ParserResultError::NotFound) => { /* Ignore because not found */ }
+            Err(ParserResultError::Error) => return Err(ParserResultError::Error),
         }
 
         match Identifier::parse(reader, context) {
             Ok(node) => return Ok(Expression::VariableAccess(node)),
-            Err(ParserError::NotFound) => { /* Ignore */ }
-            Err(e) => return Err(e),
+            Err(ParserResultError::NotFound) => { /* Ignore because not found */ }
+            Err(ParserResultError::Error) => return Err(ParserResultError::Error),
         }
 
-        Err(ParserError::NotFound)
+        Err(ParserResultError::NotFound)
     }
 }
 
@@ -80,8 +80,9 @@ mod tests {
     #[test]
     fn test_parse_variable_access() {
         let mut reader = Reader::from_str("name/rest");
-        let expression = Expression::parse(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
+        let mut context = ParserContext::default();
+        let expression =
+            Expression::parse(&mut reader, &mut context).expect("The parser must succeed");
 
         if let Expression::VariableAccess(identifier) = expression {
             assert_eq!(identifier.name(), "name", "The name is incorrect");
@@ -93,13 +94,11 @@ mod tests {
     #[test]
     fn test_parse_err_not_found() {
         let mut reader = Reader::from_str("-");
-        let expression = Expression::parse(&mut reader, &ParserContext::default())
-            .expect_err("The parser must not succeed");
+        let mut context = ParserContext::default();
+        let error =
+            Expression::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
 
-        assert!(
-            expression.variant_eq(&ParserError::NotFound),
-            "The error is incorrect"
-        );
+        assert_eq!(error, ParserResultError::NotFound, "The error is incorrect");
         assert_eq!(reader.offset(), 0, "The offset is incorrect");
     }
 }

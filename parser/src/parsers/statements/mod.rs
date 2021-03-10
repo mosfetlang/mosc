@@ -1,9 +1,9 @@
 pub use return_statement::*;
 pub use variable_declaration::*;
 
-use crate::errors::ParserError;
+use crate::context::ParserContext;
 use crate::io::{Reader, Span};
-use crate::parsers::{ParserContext, ParserResult};
+use crate::parsers::{ParserResult, ParserResultError};
 
 mod return_statement;
 mod variable_declaration;
@@ -29,20 +29,20 @@ impl Statement {
     // STATIC METHODS ---------------------------------------------------------
 
     /// Parses a statement.
-    pub fn parse(reader: &mut Reader, context: &ParserContext) -> ParserResult<Statement> {
+    pub fn parse(reader: &mut Reader, context: &mut ParserContext) -> ParserResult<Statement> {
         match VariableDeclaration::parse(reader, context) {
             Ok(node) => return Ok(Statement::VariableDeclaration(node)),
-            Err(ParserError::NotFound) => { /* Ignore */ }
-            Err(e) => return Err(e),
+            Err(ParserResultError::NotFound) => { /* Ignore because not found */ }
+            Err(ParserResultError::Error) => return Err(ParserResultError::Error),
         }
 
         match ReturnStatement::parse(reader, context) {
             Ok(node) => return Ok(Statement::ReturnStatement(node)),
-            Err(ParserError::NotFound) => { /* Ignore */ }
-            Err(e) => return Err(e),
+            Err(ParserResultError::NotFound) => { /* Ignore because not found */ }
+            Err(ParserResultError::Error) => return Err(ParserResultError::Error),
         }
 
-        Err(ParserError::NotFound)
+        Err(ParserResultError::NotFound)
     }
 }
 
@@ -59,8 +59,9 @@ mod tests {
     #[test]
     fn test_parse_variable_declaration() {
         let mut reader = Reader::from_str("let test = a");
-        let statement = Statement::parse(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
+        let mut context = ParserContext::default();
+        let statement =
+            Statement::parse(&mut reader, &mut context).expect("The parser must succeed");
 
         if let Statement::VariableDeclaration(declaration) = statement {
             assert_eq!(declaration.name().name(), "test", "The name is incorrect");
@@ -77,8 +78,9 @@ mod tests {
     #[test]
     fn test_parse_variable_access() {
         let mut reader = Reader::from_str("return test");
-        let statement = Statement::parse(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
+        let mut context = ParserContext::default();
+        let statement =
+            Statement::parse(&mut reader, &mut context).expect("The parser must succeed");
 
         if let Statement::ReturnStatement(statement) = statement {
             if let Expression::VariableAccess(identifier) = statement.expression() {
@@ -94,13 +96,11 @@ mod tests {
     #[test]
     fn test_parse_err_not_found() {
         let mut reader = Reader::from_str("-");
-        let statement = Statement::parse(&mut reader, &ParserContext::default())
-            .expect_err("The parser must not succeed");
+        let mut context = ParserContext::default();
+        let error =
+            Statement::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
 
-        assert!(
-            statement.variant_eq(&ParserError::NotFound),
-            "The error is incorrect"
-        );
+        assert_eq!(error, ParserResultError::NotFound, "The error is incorrect");
         assert_eq!(reader.offset(), 0, "The offset is incorrect");
     }
 }

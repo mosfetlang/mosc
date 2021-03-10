@@ -1,10 +1,10 @@
 use std::ops::RangeInclusive;
 
-use crate::errors::ParserError;
+use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::result::ParserResult;
 use crate::parsers::utils::cursor_manager;
-use crate::parsers::ParserContext;
+use crate::parsers::ParserResultError;
 
 // Follow UCD specification: https://www.unicode.org/Public/13.0.0/ucd/PropList.txt
 static WHITESPACE_CHARS: [RangeInclusive<char>; 8] = [
@@ -47,7 +47,10 @@ impl Whitespace {
     // STATIC METHODS ---------------------------------------------------------
 
     /// Parses an inline `Whitespace`.
-    pub fn parse_inline(reader: &mut Reader, _context: &ParserContext) -> ParserResult<Whitespace> {
+    pub fn parse_inline(
+        reader: &mut Reader,
+        _context: &mut ParserContext,
+    ) -> ParserResult<Whitespace> {
         cursor_manager(reader, |reader, init_cursor| {
             if let Some(_) = reader.read_many_of(&WHITESPACE_CHARS) {
                 let span = reader.substring_to_current(&init_cursor);
@@ -56,7 +59,7 @@ impl Whitespace {
                     is_multiline: false,
                 })
             } else {
-                Err(ParserError::NotFound)
+                Err(ParserResultError::NotFound)
             }
         })
     }
@@ -64,7 +67,7 @@ impl Whitespace {
     /// Parses a multiline `Whitespace`.
     pub fn parse_multiline(
         reader: &mut Reader,
-        _context: &ParserContext,
+        _context: &mut ParserContext,
     ) -> ParserResult<Whitespace> {
         cursor_manager(reader, |reader, init_cursor| {
             let mut any = false;
@@ -90,7 +93,7 @@ impl Whitespace {
                 let span = reader.substring_to_current(&init_cursor);
                 Ok(Whitespace { span, is_multiline })
             } else {
-                Err(ParserError::NotFound)
+                Err(ParserResultError::NotFound)
             }
         })
     }
@@ -107,8 +110,9 @@ mod tests {
     #[test]
     fn test_parse_inline() {
         let mut reader = Reader::from_str("  \t\t\t  \t\n");
-        let whitespace = Whitespace::parse_inline(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
+        let mut context = ParserContext::default();
+        let whitespace =
+            Whitespace::parse_inline(&mut reader, &mut context).expect("The parser must succeed");
 
         assert_eq!(
             whitespace.span.content(),
@@ -127,7 +131,8 @@ mod tests {
             for char in char_range.clone() {
                 let text = format!("{}", char);
                 let mut reader = Reader::from_str(text.as_str());
-                let whitespace = Whitespace::parse_inline(&mut reader, &ParserContext::default())
+                let mut context = ParserContext::default();
+                let whitespace = Whitespace::parse_inline(&mut reader, &mut context)
                     .expect("The parser must succeed");
 
                 assert_eq!(
@@ -146,7 +151,8 @@ mod tests {
     #[test]
     fn test_parse_multiline_without_jump_lines() {
         let mut reader = Reader::from_str("  \t\t\t  \t-rest");
-        let whitespace = Whitespace::parse_multiline(&mut reader, &ParserContext::default())
+        let mut context = ParserContext::default();
+        let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
             .expect("The parser must succeed");
 
         assert_eq!(
@@ -163,7 +169,8 @@ mod tests {
     #[test]
     fn test_parse_multiline_with_jump_lines() {
         let mut reader = Reader::from_str("\n\n \r\n \t\t\n\t \r \t-rest");
-        let whitespace = Whitespace::parse_multiline(&mut reader, &ParserContext::default())
+        let mut context = ParserContext::default();
+        let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
             .expect("The parser must succeed");
 
         assert_eq!(
@@ -183,9 +190,9 @@ mod tests {
             for char in char_range.clone() {
                 let text = format!("{}", char);
                 let mut reader = Reader::from_str(text.as_str());
-                let whitespace =
-                    Whitespace::parse_multiline(&mut reader, &ParserContext::default())
-                        .expect("The parser must succeed");
+                let mut context = ParserContext::default();
+                let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
+                    .expect("The parser must succeed");
 
                 assert_eq!(
                     whitespace.span.content(),
@@ -203,9 +210,9 @@ mod tests {
             for char in char_range.clone() {
                 let text = format!("{}", char);
                 let mut reader = Reader::from_str(text.as_str());
-                let whitespace =
-                    Whitespace::parse_multiline(&mut reader, &ParserContext::default())
-                        .expect("The parser must succeed");
+                let mut context = ParserContext::default();
+                let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
+                    .expect("The parser must succeed");
 
                 assert_eq!(
                     whitespace.span.content(),

@@ -1,11 +1,11 @@
-use crate::errors::ParserError;
+use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::commons::identifier::Identifier;
 use crate::parsers::commons::whitespaces::Whitespace;
 use crate::parsers::expressions::Expression;
 use crate::parsers::result::ParserResult;
 use crate::parsers::utils::cursor_manager;
-use crate::parsers::ParserContext;
+use crate::parsers::ParserResultError;
 
 static KEYWORD: &str = "return";
 
@@ -32,10 +32,13 @@ impl ReturnStatement {
     // STATIC METHODS ---------------------------------------------------------
 
     /// Parses a return statement.
-    pub fn parse(reader: &mut Reader, context: &ParserContext) -> ParserResult<ReturnStatement> {
+    pub fn parse(
+        reader: &mut Reader,
+        context: &mut ParserContext,
+    ) -> ParserResult<ReturnStatement> {
         cursor_manager(reader, |reader, init_cursor| {
             if !Identifier::parse_keyword(reader, context, KEYWORD) {
-                return Err(ParserError::NotFound);
+                return Err(ParserResultError::NotFound);
             }
 
             let whitespace = Whitespace::parse_inline(reader, context);
@@ -43,11 +46,13 @@ impl ReturnStatement {
             let expression = match Expression::parse(reader, context) {
                 Ok(v) => v,
                 Err(_) => {
-                    return Err(ParserError::MissingExpressionInReturnStatement(
-                        whitespace
-                            .map(|node| node.span().start_cursor().clone())
-                            .unwrap_or(reader.save()),
-                    ));
+                    // TODO improve with a log.
+                    return Err(ParserResultError::Error);
+                    // return Err(ParserError::MissingExpressionInReturnStatement(
+                    //     whitespace
+                    //         .map(|node| node.span().start_cursor().clone())
+                    //         .unwrap_or(reader.save()),
+                    // ));
                 }
             };
 
@@ -63,14 +68,18 @@ impl ReturnStatement {
 
 #[cfg(test)]
 mod tests {
+    use crate::test::assert_error;
+    use crate::ParserError;
+
     use super::*;
 
     #[test]
     fn test_parse() {
         // With whitespaces.
         let mut reader = Reader::from_str("return    test");
-        let statement = ReturnStatement::parse(&mut reader, &ParserContext::default())
-            .expect("The parser must succeed");
+        let mut context = ParserContext::default();
+        let statement =
+            ReturnStatement::parse(&mut reader, &mut context).expect("The parser must succeed");
 
         if let Expression::VariableAccess(identifier) = statement.expression {
             assert_eq!(identifier.name(), "test", "The literal access is incorrect");
@@ -82,28 +91,25 @@ mod tests {
     #[test]
     fn test_parse_err_not_found() {
         let mut reader = Reader::from_str("-");
-        let statement = ReturnStatement::parse(&mut reader, &ParserContext::default())
+        let mut context = ParserContext::default();
+        let error = ReturnStatement::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");
 
-        assert!(
-            statement.variant_eq(&ParserError::NotFound),
-            "The error is incorrect"
-        );
+        assert_eq!(error, ParserResultError::NotFound, "The error is incorrect");
         assert_eq!(reader.offset(), 0, "The offset is incorrect");
     }
 
     #[test]
     fn test_parse_err_missing_expression() {
         let mut reader = Reader::from_str("return");
-        let declaration = ReturnStatement::parse(&mut reader, &ParserContext::default())
+        let mut context = ParserContext::default();
+        let error = ReturnStatement::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");
 
-        assert!(
-            matches!(
-                declaration,
-                ParserError::MissingExpressionInReturnStatement(..)
-            ),
-            "The error is incorrect"
+        assert_error(
+            &context,
+            &error,
+            ParserError::MissingExpressionInReturnStatement,
         );
     }
 }

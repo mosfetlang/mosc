@@ -1,134 +1,154 @@
-use std::ops::RangeInclusive;
+use std::sync::Arc;
 
-use crate::errors::ParserError;
+use doclog::Color;
+
+use crate::context::ParserContext;
 use crate::io::{Reader, Span};
-use crate::parsers::utils::cursor_manager;
-use crate::parsers::{ParserContext, ParserResult};
+use crate::parsers::expressions::literals::integer::{IntegerNumber, Radix, SEPARATOR_RANGE};
+use crate::parsers::utils::{cursor_manager, generate_source_code, generate_warning_log};
+use crate::parsers::ParserResult;
+use crate::{ParserNode, ParserWarning};
 
-static BINARY_PREFIX: &str = "0b";
-static OCTAL_PREFIX: &str = "0o";
-static DECIMAL_PREFIX: &str = "0d";
-static HEXADECIMAL_PREFIX: &str = "0x";
-static BINARY_CHARS: &[RangeInclusive<char>] = &['0'..='1'];
-static OCTAL_CHARS: &[RangeInclusive<char>] = &['0'..='7'];
-static DECIMAL_CHARS: &[RangeInclusive<char>] = &['0'..='9'];
-static HEXADECIMAL_CHARS: &[RangeInclusive<char>] = &['0'..='9', 'A'..='F', 'a'..='f'];
-static SEPARATOR_RANGE: &[RangeInclusive<char>] = &['_'..='_'];
+static DECIMAL_SEPARATOR: &str = ".";
 
 /// A number in the Mosfet language.
 /// Can be written in binary(`0b`), octal(`0o`), decimal(`0d`) and hexadecimal(`0x`),
 /// using their own prefix. For decimal can be omitted.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Number {
-    span: Span,
-    // number: BigRational,
+    span: Arc<Span>,
+    integer: IntegerNumber,
+    decimal_digits: Option<Arc<Span>>,
 }
 
 impl Number {
     // GETTERS ----------------------------------------------------------------
 
-    /// The span of the node.
-    pub fn span(&self) -> &Span {
-        &self.span
+    /// Whether the number is prefixed or not.
+    pub fn has_prefix(&self) -> bool {
+        self.integer.has_prefix()
     }
 
-    // /// The number value.
-    // pub fn number(&self) -> &BigRational {
-    //     &self.number
-    // }
+    /// The prefix of the number as str.
+    pub fn prefix_str(&self) -> &'static str {
+        self.integer.prefix_str()
+    }
+
+    /// The radix in which the number is represented.
+    pub fn radix(&self) -> &Radix {
+        &self.integer.radix()
+    }
+
+    /// The digits belonging to the integer part of the number.
+    pub fn integer_digits(&self) -> &Arc<Span> {
+        &self.integer.digits()
+    }
+
+    /// The digits belonging to the decimal part of the number.
+    pub fn decimal_digits(&self) -> &Option<Arc<Span>> {
+        &self.decimal_digits
+    }
 
     // STATIC METHODS ---------------------------------------------------------
 
     /// Parses a prefixed `Number` or a decimal without prefix.
-    pub fn parse(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
+    pub fn parse(reader: &mut Reader, context: &mut ParserContext) -> ParserResult<Number> {
         cursor_manager(reader, |reader, init_cursor| {
-            if reader.read(BINARY_PREFIX) {
-                return Self::parse_binary(reader, context).map(|mut number| {
-                    let span = reader.substring_to_current(&init_cursor);
-                    number.span = span;
-                    number
+            let integer_part = IntegerNumber::parse(reader, context)?;
+
+            let pre_decimal_cursor = reader.save_cursor();
+            if !reader.read(DECIMAL_SEPARATOR) {
+                return Ok(Number {
+                    integer: integer_part,
+                    decimal_digits: None,
+                    span: Arc::new(reader.substring_to_current(init_cursor)),
                 });
             }
 
-            if reader.read(OCTAL_PREFIX) {
-                return Self::parse_octal(reader, context).map(|mut number| {
-                    let span = reader.substring_to_current(&init_cursor);
-                    number.span = span;
-                    number
+            let post_decimal_cursor = reader.save_cursor();
+            let digit_interval = integer_part.radix().digit_chars();
+            if let None = reader.read_many_of(digit_interval) {
+                reader.restore(pre_decimal_cursor);
+                return Ok(Number {
+                    integer: integer_part,
+                    decimal_digits: None,
+                    span: Arc::new(reader.substring_to_current(init_cursor)),
                 });
-            }
-
-            if reader.read(HEXADECIMAL_PREFIX) {
-                return Self::parse_hexadecimal(reader, context).map(|mut number| {
-                    let span = reader.substring_to_current(&init_cursor);
-                    number.span = span;
-                    number
-                });
-            }
-
-            // Decimal
-            reader.read(DECIMAL_PREFIX);
-
-            Self::parse_decimal(reader, context).map(|mut number| {
-                let span = reader.substring_to_current(&init_cursor);
-                number.span = span;
-                number
-            })
-        })
-    }
-
-    /// Parses a binary `Number` without prefix.
-    pub fn parse_binary(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
-        Self::parse_number(reader, context, &BINARY_CHARS, 2)
-    }
-
-    /// Parses an octal `Number` without prefix.
-    pub fn parse_octal(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
-        Self::parse_number(reader, context, &OCTAL_CHARS, 8)
-    }
-
-    /// Parses a decimal `Number` without prefix.
-    pub fn parse_decimal(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
-        Self::parse_number(reader, context, &DECIMAL_CHARS, 10)
-    }
-
-    /// Parses an hexadecimal `Number` without prefix.
-    pub fn parse_hexadecimal(reader: &mut Reader, context: &ParserContext) -> ParserResult<Number> {
-        Self::parse_number(reader, context, &HEXADECIMAL_CHARS, 16)
-    }
-
-    /// Parses a `Number` without prefix.
-    fn parse_number(
-        reader: &mut Reader,
-        _context: &ParserContext,
-        interval: &[RangeInclusive<char>],
-        radix: u32,
-    ) -> ParserResult<Number> {
-        cursor_manager(reader, |reader, init_cursor| {
-            if let None = reader.read_many_of(interval) {
-                return Err(ParserError::NotFound);
             }
 
             loop {
-                let init_loop_cursor = reader.save();
+                let init_loop_cursor = reader.save_cursor();
                 if let None = reader.read_many_of(&SEPARATOR_RANGE) {
                     break;
                 }
 
-                if let None = reader.read_many_of(interval) {
+                if let None = reader.read_many_of(digit_interval) {
                     reader.restore(init_loop_cursor);
                     break;
                 }
             }
 
-            let span = reader.substring_to_current(&init_cursor);
-            Ok(Number {
-                // number: BigRational::from_integer(
-                //     BigInt::parse_bytes(span.content().replace("_", "").as_bytes(), radix).unwrap(),
-                // ),
-                span,
-            })
+            let result = Number {
+                integer: integer_part,
+                decimal_digits: Some(Arc::new(reader.substring_to_current(&post_decimal_cursor))),
+                span: Arc::new(reader.substring_to_current(init_cursor)),
+            };
+
+            Self::check_trailing_zeroes(reader, context, &result);
+
+            Ok(result)
         })
+    }
+
+    fn check_trailing_zeroes(reader: &mut Reader, context: &mut ParserContext, number: &Number) {
+        if context.ignore().number_trailing_zeroes {
+            return;
+        }
+
+        let decimal_digits = number.decimal_digits.as_ref().unwrap();
+        let content = decimal_digits.content();
+        let new_content = content.trim_end_matches("0");
+        let mut number_of_zeroes = content.len() - new_content.len();
+
+        if new_content.len() == 0 {
+            if number_of_zeroes == 1 {
+                // Ignore because number is equal to X.0
+                return;
+            } else {
+                number_of_zeroes -= 1;
+            }
+        };
+
+        context.add_message(generate_warning_log(
+            ParserWarning::NumberWithTrailingZeroes,
+            "Trailing zeroes are unnecessary".to_string(),
+            |log| {
+                generate_source_code(log, &reader, |doc| {
+                    doc.highlight_section(
+                        number.span.start_cursor().offset()
+                            ..(decimal_digits.end_cursor().offset() - number_of_zeroes),
+                        None,
+                        Some(Color::Magenta),
+                    )
+                    .highlight_section_str(
+                        (decimal_digits.end_cursor().offset() - number_of_zeroes)
+                            ..decimal_digits.end_cursor().offset(),
+                        Some(if number_of_zeroes == 1 {
+                            "Remove this zero"
+                        } else {
+                            "Remove these zeroes"
+                        }),
+                        None,
+                    )
+                })
+            },
+        ));
+    }
+}
+
+impl ParserNode for Number {
+    fn span(&self) -> &Arc<Span> {
+        &self.span
     }
 }
 
@@ -138,7 +158,73 @@ impl Number {
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use crate::parsers::expressions::literals::integer::{
+        BINARY_PREFIX, DECIMAL_PREFIX, HEXADECIMAL_PREFIX, OCTAL_PREFIX,
+    };
+    use crate::test::assert_warning;
+    use crate::ParserIgnoreConfig;
 
-    // TODO
+    use super::*;
+
+    // TODO add tests
+
+    #[test]
+    fn test_warning_trailing_zeroes() {
+        let mut reader = Reader::from_str("0.00");
+        let mut context = ParserContext::default();
+        Number::parse(&mut reader, &mut context).expect("The parser must succeed");
+
+        println!("{}", context.messages()[0].to_ansi_text());
+
+        assert_warning(&context, ParserWarning::NumberWithTrailingZeroes);
+
+        for prefix in &[
+            BINARY_PREFIX,
+            OCTAL_PREFIX,
+            DECIMAL_PREFIX,
+            HEXADECIMAL_PREFIX,
+        ] {
+            let mut reader = Reader::from_str(format!("{}0.000", prefix).as_str());
+            let mut context = ParserContext::default();
+            Number::parse(&mut reader, &mut context).expect("The parser must succeed");
+
+            println!("{}", context.messages()[0].to_ansi_text());
+
+            assert_warning(&context, ParserWarning::NumberWithTrailingZeroes);
+        }
+    }
+
+    #[test]
+    fn test_ignore_warning_trailing_zeroes() {
+        let mut reader = Reader::from_str("0.00");
+        let mut ignore = ParserIgnoreConfig::new();
+        ignore.number_trailing_zeroes = true;
+
+        let mut context = ParserContext::new(ignore);
+        Number::parse(&mut reader, &mut context).expect("The parser must succeed");
+
+        assert_eq!(context.messages().len(), 0, "There must no be messages");
+    }
+
+    #[test]
+    fn test_warning_trailing_zeroes_ignores_0() {
+        let mut reader = Reader::from_str("0.0");
+        let mut context = ParserContext::default();
+        Number::parse(&mut reader, &mut context).expect("The parser must succeed");
+
+        assert_eq!(context.messages().len(), 0, "There must no be messages");
+
+        for prefix in &[
+            BINARY_PREFIX,
+            OCTAL_PREFIX,
+            DECIMAL_PREFIX,
+            HEXADECIMAL_PREFIX,
+        ] {
+            let mut reader = Reader::from_str(format!("{}0.0", prefix).as_str());
+            let mut context = ParserContext::default();
+            IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
+
+            assert_eq!(context.messages().len(), 0, "There must no be messages");
+        }
+    }
 }

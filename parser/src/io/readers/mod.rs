@@ -306,10 +306,10 @@ impl Reader {
     /// let mut reader = Reader::from_str("this test");
     /// reader.read("th");
     ///
-    /// let from = reader.save();
+    /// let from = reader.save_cursor();
     /// reader.read("is tes");
     ///
-    /// let to = reader.save();
+    /// let to = reader.save_cursor();
     ///
     /// assert_eq!(reader.substring(&from, &to).content(), "is tes");
     /// assert_eq!(reader.substring(&to, &from).content(), "is tes");
@@ -353,7 +353,7 @@ impl Reader {
     /// let mut reader = Reader::from_str("this test");
     /// reader.read("th");
     ///
-    /// let from = reader.save();
+    /// let from = reader.save_cursor();
     /// reader.read("is tes");
     ///
     /// assert_eq!(reader.substring_to_current(&from).content(), "is tes");
@@ -387,11 +387,11 @@ impl Reader {
     /// let mut reader = Reader::from_str("this test");
     /// reader.read("th");
     ///
-    /// let cursor = reader.save();
+    /// let cursor = reader.save_cursor();
     ///
     /// assert_eq!(cursor.offset(), 2);
     /// ```
-    pub fn save(&self) -> Cursor {
+    pub fn save_cursor(&self) -> Cursor {
         self.cursor.clone()
     }
 
@@ -406,13 +406,13 @@ impl Reader {
     /// ```
     /// # use parser::io::Reader;
     /// let mut reader = Reader::from_str("this test");
-    /// let cursor = reader.save();
+    /// let cursor = reader.save_cursor();
     ///
     /// assert_eq!(reader.offset(), 0);
     /// assert_eq!(cursor.offset(), 0);
     ///
     /// reader.read("th");
-    /// let cursor2 = reader.save();
+    /// let cursor2 = reader.save_cursor();
     ///
     /// assert_eq!(reader.offset(), 2);
     /// assert_eq!(cursor.offset(), 0);

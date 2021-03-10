@@ -87,8 +87,8 @@ impl Cursor {
     /// # use parser::io::Reader;
     /// let reader1 = Reader::from_str("test1");
     /// let reader2 = Reader::from_str("test2");
-    /// let cursor1 = reader1.save();
-    /// let cursor2 = reader2.save();
+    /// let cursor1 = reader1.save_cursor();
+    /// let cursor2 = reader2.save_cursor();
     ///
     /// assert_eq!(cursor1.belongs_to(&reader1), true);
     /// assert_eq!(cursor2.belongs_to(&reader1), false);

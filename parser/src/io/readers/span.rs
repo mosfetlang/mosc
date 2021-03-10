@@ -81,9 +81,9 @@ impl Span {
     ///
     /// // ... prepare the span to contain: "his\nis\nt" ...
     /// # reader.read("T");
-    /// # let from_cursor = reader.save();
+    /// # let from_cursor = reader.save_cursor();
     /// # reader.read("his\nis\nt");
-    /// # let to_cursor = reader.save();
+    /// # let to_cursor = reader.save_cursor();
     /// let span = reader.substring(&from_cursor, &to_cursor);
     ///
     /// // Get its lines.
