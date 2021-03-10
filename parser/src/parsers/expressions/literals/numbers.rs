@@ -24,7 +24,6 @@ pub struct Number {
 impl Number {
     // GETTERS ----------------------------------------------------------------
 
-    /// Whether the number is prefixed or not.
     pub fn has_prefix(&self) -> bool {
         self.integer.has_prefix()
     }
@@ -34,17 +33,14 @@ impl Number {
         self.integer.prefix_str()
     }
 
-    /// The radix in which the number is represented.
     pub fn radix(&self) -> &Radix {
         &self.integer.radix()
     }
 
-    /// The digits belonging to the integer part of the number.
     pub fn integer_digits(&self) -> &Arc<Span> {
         &self.integer.digits()
     }
 
-    /// The digits belonging to the decimal part of the number.
     pub fn decimal_digits(&self) -> &Option<Arc<Span>> {
         &self.decimal_digits
     }

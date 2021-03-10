@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
+use doclog::Color;
+
 use crate::context::ParserContext;
 use crate::io::{Reader, Span};
 use crate::parsers::commons::identifier::Identifier;
 use crate::parsers::commons::whitespaces::Whitespace;
 use crate::parsers::expressions::Expression;
 use crate::parsers::result::ParserResult;
-use crate::parsers::utils::cursor_manager;
+use crate::parsers::utils::{cursor_manager, generate_error_log, generate_source_code};
 use crate::parsers::ParserResultError;
-use crate::ParserNode;
+use crate::{ParserError, ParserNode};
 
 static KEYWORD: &str = "let";
 static ASSIGN_OPERATOR: &str = "=";
@@ -17,21 +19,34 @@ static ASSIGN_OPERATOR: &str = "=";
 #[derive(Debug)]
 pub struct VariableDeclaration {
     span: Arc<Span>,
-    name: Identifier,
-    expression: Expression,
+    name: Arc<Identifier>,
+    expression: Arc<Expression>,
+    pre_name_whitespace: Arc<Whitespace>,
+    pre_assign_operator_whitespace: Arc<Whitespace>,
+    pre_expression_whitespace: Arc<Whitespace>,
 }
 
 impl VariableDeclaration {
     // GETTERS ----------------------------------------------------------------
 
-    /// The name of the variable declaration.
-    pub fn name(&self) -> &Identifier {
+    pub fn name(&self) -> &Arc<Identifier> {
         &self.name
     }
 
-    /// The expression of the variable declaration.
-    pub fn expression(&self) -> &Expression {
+    pub fn expression(&self) -> &Arc<Expression> {
         &self.expression
+    }
+
+    pub fn pre_name_whitespace(&self) -> &Arc<Whitespace> {
+        &self.pre_name_whitespace
+    }
+
+    pub fn pre_assign_operator_whitespace(&self) -> &Arc<Whitespace> {
+        &self.pre_assign_operator_whitespace
+    }
+
+    pub fn pre_expression_whitespace(&self) -> &Arc<Whitespace> {
+        &self.pre_expression_whitespace
     }
 
     // STATIC METHODS ---------------------------------------------------------
@@ -46,53 +61,109 @@ impl VariableDeclaration {
                 return Err(ParserResultError::NotFound);
             }
 
-            let whitespace = Whitespace::parse_inline(reader, context);
+            let pre_name_whitespace = Whitespace::parse_multiline_or_default(reader, context);
 
             let name = match Identifier::parse(reader, context) {
                 Ok(v) => v,
                 Err(_) => {
-                    // TODO improve with a log.
+                    context.add_message(generate_error_log(
+                        ParserError::MissingNameInVariableDeclaration,
+                        "The variable name is missing".to_string(),
+                        |log| {
+                            generate_source_code(log, &reader, |doc| {
+                                doc.highlight_section(
+                                    init_cursor.offset()
+                                        ..pre_name_whitespace.span().start_cursor().offset(),
+                                    None,
+                                    Some(Color::Magenta),
+                                )
+                                .highlight_cursor_str(
+                                    pre_name_whitespace.span().start_cursor().offset(),
+                                    Some("Insert an identifier here"),
+                                    None,
+                                )
+                            })
+                        },
+                    ));
+
                     return Err(ParserResultError::Error);
-                    // return Err(ParserError::MissingVariableNameInVariableDeclaration(
-                    //     whitespace
-                    //         .map(|node| node.span().start_cursor().clone())
-                    //         .unwrap_or(reader.save()),
-                    // ));
                 }
             };
 
-            let whitespace = Whitespace::parse_inline(reader, context);
+            let pre_assign_operator_whitespace =
+                Whitespace::parse_multiline_or_default(reader, context);
 
             if !reader.read(ASSIGN_OPERATOR) {
-                // TODO improve with a log.
+                context.add_message(generate_error_log(
+                    ParserError::MissingAssignOperatorInVariableDeclaration,
+                    "The assign operator is required after the variable name to define its value"
+                        .to_string(),
+                    |log| {
+                        generate_source_code(log, &reader, |doc| {
+                            doc.highlight_section(
+                                init_cursor.offset()
+                                    ..pre_assign_operator_whitespace
+                                        .span()
+                                        .start_cursor()
+                                        .offset(),
+                                None,
+                                Some(Color::Magenta),
+                            )
+                            .highlight_cursor(
+                                pre_assign_operator_whitespace
+                                    .span()
+                                    .start_cursor()
+                                    .offset(),
+                                Some(Arc::new(format!(
+                                    "Insert the assign operator '{}' here",
+                                    ASSIGN_OPERATOR
+                                ))),
+                                None,
+                            )
+                        })
+                    },
+                ));
+
                 return Err(ParserResultError::Error);
-                // return Err(ParserError::MissingAssignOperatorInVariableDeclaration(
-                //     whitespace
-                //         .map(|node| node.span().start_cursor().clone())
-                //         .unwrap_or(reader.save()),
-                // ));
             }
 
-            let whitespace = Whitespace::parse_inline(reader, context);
+            let pre_expression_whitespace = Whitespace::parse_multiline_or_default(reader, context);
 
             let expression = match Expression::parse(reader, context) {
                 Ok(v) => v,
                 Err(_) => {
-                    // TODO improve with a log.
+                    context.add_message(generate_error_log(
+                        ParserError::MissingExpressionInVariableDeclaration,
+                        "An expression is expected after the assign operator".to_string(),
+                        |log| {
+                            generate_source_code(log, &reader, |doc| {
+                                doc.highlight_section(
+                                    init_cursor.offset()
+                                        ..pre_expression_whitespace.span().start_cursor().offset(),
+                                    None,
+                                    Some(Color::Magenta),
+                                )
+                                .highlight_cursor_str(
+                                    pre_expression_whitespace.span().start_cursor().offset(),
+                                    Some("Insert an expression here"),
+                                    None,
+                                )
+                            })
+                        },
+                    ));
+
                     return Err(ParserResultError::Error);
-                    // return Err(ParserError::MissingExpressionInVariableDeclaration(
-                    //     whitespace
-                    //         .map(|node| node.span().start_cursor().clone())
-                    //         .unwrap_or(reader.save()),
-                    // ));
                 }
             };
 
             let span = Arc::new(reader.substring_to_current(&init_cursor));
             Ok(VariableDeclaration {
                 span,
-                name,
-                expression,
+                name: Arc::new(name),
+                expression: Arc::new(expression),
+                pre_name_whitespace: Arc::new(pre_name_whitespace),
+                pre_expression_whitespace: Arc::new(pre_expression_whitespace),
+                pre_assign_operator_whitespace: Arc::new(pre_assign_operator_whitespace),
             })
         })
     }
@@ -123,9 +194,9 @@ mod tests {
         let declaration =
             VariableDeclaration::parse(&mut reader, &mut context).expect("The parser must succeed");
 
-        assert_eq!(declaration.name.name(), "test", "The name is incorrect");
-        if let Expression::VariableAccess(identifier) = declaration.expression {
-            assert_eq!(identifier.name(), "a", "The literal access is incorrect");
+        assert_eq!(declaration.name.content(), "test", "The name is incorrect");
+        if let Expression::VariableAccess(identifier) = declaration.expression.as_ref() {
+            assert_eq!(identifier.content(), "a", "The literal access is incorrect");
         } else {
             panic!("The literal is incorrect");
         }
@@ -136,9 +207,9 @@ mod tests {
         let declaration =
             VariableDeclaration::parse(&mut reader, &mut context).expect("The parser must succeed");
 
-        assert_eq!(declaration.name.name(), "test", "The name is incorrect");
-        if let Expression::VariableAccess(identifier) = declaration.expression {
-            assert_eq!(identifier.name(), "a", "The literal access is incorrect");
+        assert_eq!(declaration.name.content(), "test", "The name is incorrect");
+        if let Expression::VariableAccess(identifier) = declaration.expression.as_ref() {
+            assert_eq!(identifier.content(), "a", "The literal access is incorrect");
         } else {
             panic!("The literal is incorrect");
         }
@@ -164,7 +235,7 @@ mod tests {
         assert_error(
             &context,
             &error,
-            ParserError::MissingVariableNameInVariableDeclaration,
+            ParserError::MissingNameInVariableDeclaration,
         );
     }
 

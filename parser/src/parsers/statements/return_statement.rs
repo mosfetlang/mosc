@@ -8,7 +8,6 @@ use crate::parsers::expressions::Expression;
 use crate::parsers::result::ParserResult;
 use crate::parsers::utils::{cursor_manager, generate_error_log, generate_source_code};
 use crate::parsers::ParserResultError;
-use crate::ParserError::MissingExpressionInReturnStatement;
 use crate::{ParserError, ParserNode};
 
 static KEYWORD: &str = "return";
@@ -17,15 +16,19 @@ static KEYWORD: &str = "return";
 #[derive(Debug)]
 pub struct ReturnStatement {
     span: Arc<Span>,
-    expression: Expression,
+    expression: Arc<Expression>,
+    pre_expression_whitespace: Arc<Whitespace>,
 }
 
 impl ReturnStatement {
     // GETTERS ----------------------------------------------------------------
 
-    /// The expression of the return statement.
     pub fn expression(&self) -> &Expression {
         &self.expression
+    }
+
+    pub fn pre_expression_whitespace(&self) -> &Arc<Whitespace> {
+        &self.pre_expression_whitespace
     }
 
     // STATIC METHODS ---------------------------------------------------------
@@ -40,7 +43,7 @@ impl ReturnStatement {
                 return Err(ParserResultError::NotFound);
             }
 
-            let whitespace = Whitespace::parse_inline(reader, context);
+            let pre_expression_whitespace = Whitespace::parse_multiline_or_default(reader, context);
 
             let expression = match Expression::parse(reader, context) {
                 Ok(v) => v,
@@ -64,7 +67,11 @@ impl ReturnStatement {
             };
 
             let span = Arc::new(reader.substring_to_current(&init_cursor));
-            Ok(ReturnStatement { span, expression })
+            Ok(ReturnStatement {
+                span,
+                expression: Arc::new(expression),
+                pre_expression_whitespace: Arc::new(pre_expression_whitespace),
+            })
         })
     }
 }
@@ -94,8 +101,12 @@ mod tests {
         let statement =
             ReturnStatement::parse(&mut reader, &mut context).expect("The parser must succeed");
 
-        if let Expression::VariableAccess(identifier) = statement.expression {
-            assert_eq!(identifier.name(), "test", "The literal access is incorrect");
+        if let Expression::VariableAccess(identifier) = statement.expression.as_ref() {
+            assert_eq!(
+                identifier.content(),
+                "test",
+                "The literal access is incorrect"
+            );
         } else {
             panic!("The literal is incorrect");
         }

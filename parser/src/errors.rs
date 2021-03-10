@@ -4,7 +4,7 @@ pub enum ParserError {
     NumberWithSeparatorAfterPrefix,
     NumberWithoutDigitsAfterPrefix,
 
-    MissingVariableNameInVariableDeclaration,
+    MissingNameInVariableDeclaration,
     MissingAssignOperatorInVariableDeclaration,
     MissingExpressionInVariableDeclaration,
 

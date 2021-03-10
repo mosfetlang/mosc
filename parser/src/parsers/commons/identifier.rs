@@ -22,8 +22,7 @@ pub struct Identifier {
 impl Identifier {
     // GETTERS ----------------------------------------------------------------
 
-    /// The name of the `Identifier`.
-    pub fn name(&self) -> &str {
+    pub fn content(&self) -> &str {
         self.span.content()
     }
 
@@ -53,7 +52,7 @@ impl Identifier {
             }
         };
 
-        if id.name() == keyword {
+        if id.content() == keyword {
             true
         } else {
             reader.restore(init_cursor);
@@ -74,7 +73,6 @@ impl ParserNode for Identifier {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::ParserResultError;
     use crate::test::assert_not_found;
 
     use super::*;
@@ -86,7 +84,7 @@ mod tests {
         let identifier =
             Identifier::parse(&mut reader, &mut context).expect("The parser must succeed");
 
-        assert_eq!(identifier.name(), "test", "The name is incorrect");
+        assert_eq!(identifier.content(), "test", "The name is incorrect");
     }
 
     #[test]
@@ -96,7 +94,7 @@ mod tests {
         let identifier =
             Identifier::parse(&mut reader, &mut context).expect("The parser must succeed");
 
-        assert_eq!(identifier.name(), "t3st3", "The name is incorrect");
+        assert_eq!(identifier.content(), "t3st3", "The name is incorrect");
     }
 
     #[test]
@@ -106,7 +104,7 @@ mod tests {
         let identifier =
             Identifier::parse(&mut reader, &mut context).expect("The parser must succeed");
 
-        assert_eq!(identifier.name(), "_", "The name is incorrect");
+        assert_eq!(identifier.content(), "_", "The name is incorrect");
 
         let mut reader = Reader::from_str("___test___32___-rest");
         let mut context = ParserContext::default();
@@ -114,7 +112,7 @@ mod tests {
             Identifier::parse(&mut reader, &mut context).expect("The parser must succeed");
 
         assert_eq!(
-            identifier.name(),
+            identifier.content(),
             "___test___32___",
             "The name is incorrect"
         );

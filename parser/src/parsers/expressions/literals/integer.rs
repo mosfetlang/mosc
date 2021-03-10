@@ -70,7 +70,6 @@ pub struct IntegerNumber {
 impl IntegerNumber {
     // GETTERS ----------------------------------------------------------------
 
-    /// Whether the number is prefixed or not.
     pub fn has_prefix(&self) -> bool {
         self.has_prefix
     }
@@ -84,12 +83,10 @@ impl IntegerNumber {
         }
     }
 
-    /// The radix in which the number is represented.
     pub fn radix(&self) -> &Radix {
         &self.radix
     }
 
-    /// The digits of the number.
     pub fn digits(&self) -> &Arc<Span> {
         &self.digits
     }

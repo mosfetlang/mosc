@@ -85,7 +85,7 @@ mod tests {
             Expression::parse(&mut reader, &mut context).expect("The parser must succeed");
 
         if let Expression::VariableAccess(identifier) = expression {
-            assert_eq!(identifier.name(), "name", "The name is incorrect");
+            assert_eq!(identifier.content(), "name", "The name is incorrect");
         } else {
             panic!("The literal is incorrect");
         }

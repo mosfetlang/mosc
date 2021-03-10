@@ -36,7 +36,7 @@ pub struct Whitespace {
 impl Whitespace {
     // GETTERS ----------------------------------------------------------------
 
-    /// Whether it is a multiline whitespaces or not.
+    /// Whether the node contains a new line character or not.
     pub fn is_multiline(&self) -> bool {
         self.is_multiline
     }
@@ -92,6 +92,25 @@ impl Whitespace {
             } else {
                 Err(ParserResultError::NotFound)
             }
+        })
+    }
+
+    /// Parses an inline `Whitespace` or returns an empty one.
+    pub fn parse_inline_or_default(reader: &mut Reader, context: &mut ParserContext) -> Whitespace {
+        Self::parse_inline(reader, context).unwrap_or(Whitespace {
+            span: Arc::new(reader.substring_to_current(&reader.save_cursor())),
+            is_multiline: false,
+        })
+    }
+
+    /// Parses a multiline `Whitespace` or returns an empty one.
+    pub fn parse_multiline_or_default(
+        reader: &mut Reader,
+        context: &mut ParserContext,
+    ) -> Whitespace {
+        Self::parse_multiline(reader, context).unwrap_or(Whitespace {
+            span: Arc::new(reader.substring_to_current(&reader.save_cursor())),
+            is_multiline: false,
         })
     }
 }

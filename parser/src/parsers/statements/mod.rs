@@ -77,9 +77,14 @@ mod tests {
             Statement::parse(&mut reader, &mut context).expect("The parser must succeed");
 
         if let Statement::VariableDeclaration(declaration) = statement {
-            assert_eq!(declaration.name().name(), "test", "The name is incorrect");
-            if let Expression::VariableAccess(identifier) = declaration.expression() {
-                assert_eq!(identifier.name(), "a", "The literal access is incorrect");
+            assert_eq!(
+                declaration.name().content(),
+                "test",
+                "The name is incorrect"
+            );
+
+            if let Expression::VariableAccess(identifier) = declaration.expression().as_ref() {
+                assert_eq!(identifier.content(), "a", "The literal access is incorrect");
             } else {
                 panic!("The literal is incorrect");
             }
@@ -97,7 +102,11 @@ mod tests {
 
         if let Statement::ReturnStatement(statement) = statement {
             if let Expression::VariableAccess(identifier) = statement.expression() {
-                assert_eq!(identifier.name(), "test", "The literal access is incorrect");
+                assert_eq!(
+                    identifier.content(),
+                    "test",
+                    "The literal access is incorrect"
+                );
             } else {
                 panic!("The literal is incorrect");
             }
