@@ -126,14 +126,14 @@ impl Number {
             |log| {
                 generate_source_code(log, &reader, |doc| {
                     doc.highlight_section(
-                        number.span.start_cursor().offset()
-                            ..(decimal_digits.end_cursor().offset() - number_of_zeroes),
+                        number.span.start_cursor().byte_offset()
+                            ..(decimal_digits.end_cursor().byte_offset() - number_of_zeroes),
                         None,
                         Some(Color::Magenta),
                     )
                     .highlight_section_str(
-                        (decimal_digits.end_cursor().offset() - number_of_zeroes)
-                            ..decimal_digits.end_cursor().offset(),
+                        (decimal_digits.end_cursor().byte_offset() - number_of_zeroes)
+                            ..decimal_digits.end_cursor().byte_offset(),
                         Some(if number_of_zeroes == 1 {
                             "Remove this zero"
                         } else {

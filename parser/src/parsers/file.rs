@@ -76,7 +76,12 @@ impl MosfetFile {
                                 |log| {
                                     generate_source_code(log, &reader, |doc| {
                                         doc.highlight_cursor_str(
-                                            statements.last().unwrap().span().end_cursor().offset(),
+                                            statements
+                                                .last()
+                                                .unwrap()
+                                                .span()
+                                                .end_cursor()
+                                                .byte_offset(),
                                             Some("Insert a new line (\\n) here"),
                                             None,
                                         )
@@ -106,14 +111,14 @@ impl MosfetFile {
                         let last_statement = statements.last().unwrap();
                         generate_source_code(log, &reader, |doc| {
                             let doc = doc.highlight_cursor_str(
-                                last_statement.span().end_cursor().offset(),
+                                last_statement.span().end_cursor().byte_offset(),
                                 Some("The file must end here"),
                                 None,
                             );
 
-                            if reader.content().len() - reader.offset() != 0 {
+                            if reader.content().len() - reader.byte_offset() != 0 {
                                 doc.highlight_section_str(
-                                    last_statement.span().end_cursor().offset()
+                                    last_statement.span().end_cursor().byte_offset()
                                         ..reader.content().len(),
                                     Some("Remove this code"),
                                     Some(Color::Magenta),

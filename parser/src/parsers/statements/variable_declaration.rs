@@ -72,13 +72,13 @@ impl VariableDeclaration {
                         |log| {
                             generate_source_code(log, &reader, |doc| {
                                 doc.highlight_section(
-                                    init_cursor.offset()
-                                        ..pre_name_whitespace.span().start_cursor().offset(),
+                                    init_cursor.byte_offset()
+                                        ..pre_name_whitespace.span().start_cursor().byte_offset(),
                                     None,
                                     Some(Color::Magenta),
                                 )
                                 .highlight_cursor_str(
-                                    pre_name_whitespace.span().start_cursor().offset(),
+                                    pre_name_whitespace.span().start_cursor().byte_offset(),
                                     Some("Insert an identifier here"),
                                     None,
                                 )
@@ -101,11 +101,11 @@ impl VariableDeclaration {
                     |log| {
                         generate_source_code(log, &reader, |doc| {
                             doc.highlight_section(
-                                init_cursor.offset()
+                                init_cursor.byte_offset()
                                     ..pre_assign_operator_whitespace
                                         .span()
                                         .start_cursor()
-                                        .offset(),
+                                        .byte_offset(),
                                 None,
                                 Some(Color::Magenta),
                             )
@@ -113,7 +113,7 @@ impl VariableDeclaration {
                                 pre_assign_operator_whitespace
                                     .span()
                                     .start_cursor()
-                                    .offset(),
+                                    .byte_offset(),
                                 Some(Arc::new(format!(
                                     "Insert the assign operator '{}' here",
                                     ASSIGN_OPERATOR
@@ -138,13 +138,19 @@ impl VariableDeclaration {
                         |log| {
                             generate_source_code(log, &reader, |doc| {
                                 doc.highlight_section(
-                                    init_cursor.offset()
-                                        ..pre_expression_whitespace.span().start_cursor().offset(),
+                                    init_cursor.byte_offset()
+                                        ..pre_expression_whitespace
+                                            .span()
+                                            .start_cursor()
+                                            .byte_offset(),
                                     None,
                                     Some(Color::Magenta),
                                 )
                                 .highlight_cursor_str(
-                                    pre_expression_whitespace.span().start_cursor().offset(),
+                                    pre_expression_whitespace
+                                        .span()
+                                        .start_cursor()
+                                        .byte_offset(),
                                     Some("Insert an expression here"),
                                     None,
                                 )

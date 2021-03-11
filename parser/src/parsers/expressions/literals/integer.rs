@@ -220,12 +220,13 @@ impl IntegerNumber {
                             |log| {
                                 generate_source_code(log, &reader, |doc| {
                                     doc.highlight_section(
-                                        (init_cursor.offset() - prefix.len())..init_cursor.offset(),
+                                        (init_cursor.byte_offset() - prefix.len())
+                                            ..init_cursor.byte_offset(),
                                         None,
                                         Some(Color::Magenta),
                                     )
                                     .highlight_section_str(
-                                        init_cursor.offset()..reader.offset(),
+                                        init_cursor.byte_offset()..reader.byte_offset(),
                                         Some("Remove this token"),
                                         None,
                                     )
@@ -246,12 +247,13 @@ impl IntegerNumber {
                         |log| {
                             generate_source_code(log, &reader, |doc| {
                                 doc.highlight_section(
-                                    (init_cursor.offset() - prefix.len())..init_cursor.offset(),
+                                    (init_cursor.byte_offset() - prefix.len())
+                                        ..init_cursor.byte_offset(),
                                     None,
                                     Some(Color::Magenta),
                                 )
                                 .highlight_cursor_str(
-                                    reader.offset(),
+                                    reader.byte_offset(),
                                     Some("Add a digit here, e.g. 0"),
                                     None,
                                 )
@@ -327,8 +329,8 @@ impl IntegerNumber {
                 generate_source_code(log, &reader, |doc| {
                     let doc = if prefix.len() != 0 {
                         doc.highlight_section(
-                            (digits.start_cursor().offset() - prefix.len())
-                                ..digits.start_cursor().offset(),
+                            (digits.start_cursor().byte_offset() - prefix.len())
+                                ..digits.start_cursor().byte_offset(),
                             None,
                             Some(Color::Magenta),
                         )
@@ -337,8 +339,8 @@ impl IntegerNumber {
                     };
 
                     doc.highlight_section_str(
-                        digits.start_cursor().offset()
-                            ..(digits.start_cursor().offset() + number_of_zeroes),
+                        digits.start_cursor().byte_offset()
+                            ..(digits.start_cursor().byte_offset() + number_of_zeroes),
                         Some(if number_of_zeroes == 1 {
                             "Remove this zero"
                         } else {
@@ -347,8 +349,8 @@ impl IntegerNumber {
                         None,
                     )
                     .highlight_section(
-                        (digits.end_cursor().offset() - new_content.len())
-                            ..digits.end_cursor().offset(),
+                        (digits.end_cursor().byte_offset() - new_content.len())
+                            ..digits.end_cursor().byte_offset(),
                         None,
                         Some(Color::Magenta),
                     )

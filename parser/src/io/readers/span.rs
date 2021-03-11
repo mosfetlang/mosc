@@ -37,17 +37,17 @@ impl Span {
 
     /// The content of the `Span`.
     pub fn content(&self) -> &str {
-        &self.content[self.start_cursor.offset()..self.end_cursor.offset()]
+        &self.content[self.start_cursor.byte_offset()..self.end_cursor.byte_offset()]
     }
 
     /// The content before the `Span`.
     pub fn content_before(&self) -> &str {
-        &self.content[..self.start_cursor.offset()]
+        &self.content[..self.start_cursor.byte_offset()]
     }
 
     /// The content after the `Span`.
     pub fn content_after(&self) -> &str {
-        &self.content[self.end_cursor.offset()..]
+        &self.content[self.end_cursor.byte_offset()..]
     }
 
     /// The start position of the `Span` in bytes.
@@ -62,7 +62,7 @@ impl Span {
 
     /// The length of the `Span` in bytes.
     pub fn len(&self) -> usize {
-        self.end_cursor.offset() - self.start_cursor.offset()
+        self.end_cursor.byte_offset() - self.start_cursor.byte_offset()
     }
 
     /// The length of the `Span` in characters.
@@ -96,7 +96,7 @@ impl Span {
         };
 
         let end_index = match memchr(b'\n', self.content_after().as_bytes()) {
-            Some(v) => v + self.end_cursor.offset(),
+            Some(v) => v + self.end_cursor.byte_offset(),
             None => self.content.len(),
         };
 

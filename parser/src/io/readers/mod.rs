@@ -59,8 +59,8 @@ impl Reader {
     }
 
     /// The position of the `Reader` in bytes.
-    pub fn offset(&self) -> usize {
-        self.cursor.offset()
+    pub fn byte_offset(&self) -> usize {
+        self.cursor.byte_offset()
     }
 
     /// The position of the `Cursor` in characters.
@@ -83,7 +83,7 @@ impl Reader {
 
     /// The remaining content as an `Slice`.
     pub fn remaining_content(&self) -> &str {
-        &self.content.as_str()[self.cursor.offset()..]
+        &self.content.as_str()[self.cursor.byte_offset()..]
     }
 
     /// The remaining content as an `Span`.
@@ -100,7 +100,7 @@ impl Reader {
 
     /// The length in bytes of the content that is not already read.
     pub fn remaining_length(&self) -> usize {
-        self.content.len() - self.cursor.offset()
+        self.content.len() - self.cursor.byte_offset()
     }
 
     /// The length in characters of the content that is not already read.
@@ -123,15 +123,15 @@ impl Reader {
     /// ```
     /// # use parser::io::Reader;
     /// let mut reader = Reader::from_str("test");
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.read("tes");
     /// assert!(result);
-    /// assert_eq!(reader.offset(), 3);
+    /// assert_eq!(reader.byte_offset(), 3);
     ///
     /// let result = reader.read("tes");
     /// assert!(!result);
-    /// assert_eq!(reader.offset(), 3);
+    /// assert_eq!(reader.byte_offset(), 3);
     /// ```
     pub fn read(&mut self, text: &str) -> bool {
         if self.continues_with(text) {
@@ -149,19 +149,19 @@ impl Reader {
     /// ```
     /// # use parser::io::Reader;
     /// let mut reader = Reader::from_str("te");
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.read_one_of(&['a'..='z']);
     /// assert_eq!(result, Some('t'));
-    /// assert_eq!(reader.offset(), 1);
+    /// assert_eq!(reader.byte_offset(), 1);
     ///
     /// let result = reader.read_one_of(&['a'..='z']);
     /// assert_eq!(result, Some('e'));
-    /// assert_eq!(reader.offset(), 2);
+    /// assert_eq!(reader.byte_offset(), 2);
     ///
     /// let result = reader.read_one_of(&['a'..='z']);
     /// assert_eq!(result, None);
-    /// assert_eq!(reader.offset(), 2);
+    /// assert_eq!(reader.byte_offset(), 2);
     /// ```
     pub fn read_one_of(&mut self, interval: &[RangeInclusive<char>]) -> Option<char> {
         if let Some(char) = self.continues_with_one_of(interval) {
@@ -179,21 +179,21 @@ impl Reader {
     /// ```
     /// # use parser::io::Reader;
     /// let mut reader = Reader::from_str("this test");
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.read_many_of(&['a'..='z']);
     /// assert_eq!(result, Some("this"));
-    /// assert_eq!(reader.offset(), 4);
+    /// assert_eq!(reader.byte_offset(), 4);
     ///
     /// let result = reader.read_many_of(&['a'..='z']);
     /// assert_eq!(result, None);
-    /// assert_eq!(reader.offset(), 4);
+    /// assert_eq!(reader.byte_offset(), 4);
     /// ```
     pub fn read_many_of(&mut self, interval: &[RangeInclusive<char>]) -> Option<&str> {
         if let Some(text) = self.continues_with_many_of(interval) {
             let length = text.len();
             self.consume(length);
-            Some(&self.content.as_str()[self.offset() - length..self.offset()])
+            Some(&self.content.as_str()[self.byte_offset() - length..self.byte_offset()])
         } else {
             None
         }
@@ -207,11 +207,11 @@ impl Reader {
     /// ```
     /// # use parser::io::Reader;
     /// let mut reader = Reader::from_str("test");
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// assert_eq!(reader.continues_with("tes"), true);
     /// assert_eq!(reader.continues_with("this"), false);
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     /// ```
     pub fn continues_with(&self, text: &str) -> bool {
         let remaining = self.remaining_content();
@@ -228,15 +228,15 @@ impl Reader {
     /// ```
     /// # use parser::io::Reader;
     /// let mut reader = Reader::from_str("test");
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.continues_with_one_of(&['a'..='z']);
     /// assert_eq!(result, Some('t'));
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.continues_with_one_of(&['A'..='Z']);
     /// assert_eq!(result, None);
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     /// ```
     pub fn continues_with_one_of(&self, interval: &[RangeInclusive<char>]) -> Option<char> {
         let remaining = self.remaining_content();
@@ -262,15 +262,15 @@ impl Reader {
     /// ```
     /// # use parser::io::Reader;
     /// let mut reader = Reader::from_str("this test");
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.continues_with_many_of(&['a'..='z']);
     /// assert_eq!(result, Some("this"));
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.continues_with_many_of(&['A'..='Z']);
     /// assert_eq!(result, None);
-    /// assert_eq!(reader.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
     /// ```
     pub fn continues_with_many_of(&self, interval: &[RangeInclusive<char>]) -> Option<&str> {
         let remaining = self.remaining_content();
@@ -326,7 +326,7 @@ impl Reader {
             "from does not belong to this reader"
         );
 
-        let (from, to) = if from.offset() <= to.offset() {
+        let (from, to) = if from.byte_offset() <= to.byte_offset() {
             (from, to)
         } else {
             (to, from)
@@ -365,7 +365,7 @@ impl Reader {
             "cursor does not belong to this reader"
         );
 
-        let (from, to) = if cursor.offset() <= self.offset() {
+        let (from, to) = if cursor.byte_offset() <= self.byte_offset() {
             (cursor, &self.cursor)
         } else {
             (&self.cursor, cursor)
@@ -389,7 +389,7 @@ impl Reader {
     ///
     /// let cursor = reader.save_cursor();
     ///
-    /// assert_eq!(cursor.offset(), 2);
+    /// assert_eq!(cursor.byte_offset(), 2);
     /// ```
     pub fn save_cursor(&self) -> Cursor {
         self.cursor.clone()
@@ -408,20 +408,20 @@ impl Reader {
     /// let mut reader = Reader::from_str("this test");
     /// let cursor = reader.save_cursor();
     ///
-    /// assert_eq!(reader.offset(), 0);
-    /// assert_eq!(cursor.offset(), 0);
+    /// assert_eq!(reader.byte_offset(), 0);
+    /// assert_eq!(cursor.byte_offset(), 0);
     ///
     /// reader.read("th");
     /// let cursor2 = reader.save_cursor();
     ///
-    /// assert_eq!(reader.offset(), 2);
-    /// assert_eq!(cursor.offset(), 0);
-    /// assert_eq!(cursor2.offset(), 2);
+    /// assert_eq!(reader.byte_offset(), 2);
+    /// assert_eq!(cursor.byte_offset(), 0);
+    /// assert_eq!(cursor2.byte_offset(), 2);
     ///
     /// reader.restore(cursor);
     ///
-    /// assert_eq!(reader.offset(), 0);
-    /// assert_eq!(cursor2.offset(), 2);
+    /// assert_eq!(reader.byte_offset(), 0);
+    /// assert_eq!(cursor2.byte_offset(), 2);
     /// ```
     pub fn restore(&mut self, cursor: Cursor) {
         assert_eq!(
@@ -444,7 +444,7 @@ impl Reader {
             return;
         }
 
-        let offset = self.offset();
+        let offset = self.byte_offset();
         let new_offset = offset + count;
         let consumed_fragment = &self.content[offset..new_offset];
         let additional_chars = num_chars(consumed_fragment.as_bytes());
@@ -503,7 +503,7 @@ mod tests {
         let mut reader = Reader::from_str(text);
         reader.consume(0);
 
-        assert_eq!(reader.offset(), 0, "The offset is incorrect");
+        assert_eq!(reader.byte_offset(), 0, "The offset is incorrect");
         assert_eq!(reader.char_offset(), 0, "The char_offset is incorrect");
         assert_eq!(reader.line(), 1, "The line is incorrect");
         assert_eq!(reader.column(), 1, "The column is incorrect");
@@ -515,21 +515,21 @@ mod tests {
         let mut reader = Reader::from_str(text);
         reader.consume(2);
 
-        assert_eq!(reader.offset(), 2, "The offset is incorrect");
+        assert_eq!(reader.byte_offset(), 2, "The offset is incorrect");
         assert_eq!(reader.char_offset(), 2, "The char_offset is incorrect");
         assert_eq!(reader.line(), 1, "The line is incorrect");
         assert_eq!(reader.column(), 3, "The column is incorrect");
 
         reader.consume(3);
 
-        assert_eq!(reader.offset(), 5, "The offset is incorrect");
+        assert_eq!(reader.byte_offset(), 5, "The offset is incorrect");
         assert_eq!(reader.char_offset(), 5, "The char_offset is incorrect");
         assert_eq!(reader.line(), 2, "The line is incorrect");
         assert_eq!(reader.column(), 1, "The column is incorrect");
 
         reader.consume(2);
 
-        assert_eq!(reader.offset(), 7, "The offset is incorrect");
+        assert_eq!(reader.byte_offset(), 7, "The offset is incorrect");
         assert_eq!(reader.char_offset(), 7, "The char_offset is incorrect");
         assert_eq!(reader.line(), 2, "The line is incorrect");
         assert_eq!(reader.column(), 3, "The column is incorrect");
@@ -541,7 +541,7 @@ mod tests {
         let mut reader = Reader::from_str(text);
         reader.consume(3);
 
-        assert_eq!(reader.offset(), 3, "The offset is incorrect");
+        assert_eq!(reader.byte_offset(), 3, "The offset is incorrect");
         assert_eq!(reader.char_offset(), 1, "The char_offset is incorrect");
         assert_eq!(reader.line(), 1, "The line is incorrect");
         assert_eq!(reader.column(), 2, "The column is incorrect");
