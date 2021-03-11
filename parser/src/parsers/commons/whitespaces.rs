@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::context::ParserContext;
 use crate::io::{Reader, Span};
+use crate::parsers::commons::comments::Comment;
 use crate::parsers::result::ParserResult;
 use crate::parsers::utils::cursor_manager;
 use crate::parsers::ParserResultError;
@@ -31,6 +32,14 @@ pub static MULTILINE_WHITESPACE_CHARS: [RangeInclusive<char>; 3] = [
 pub struct Whitespace {
     span: Arc<Span>,
     is_multiline: bool,
+    elements: Vec<WhitespaceElement>,
+}
+
+/// An element of the whitespace.
+#[derive(Debug)]
+pub enum WhitespaceElement {
+    Whitespace(Arc<Span>),
+    Comment(Arc<Comment>),
 }
 
 impl Whitespace {
@@ -41,22 +50,54 @@ impl Whitespace {
         self.is_multiline
     }
 
+    pub fn elements(&self) -> &Vec<WhitespaceElement> {
+        &self.elements
+    }
+
     // STATIC METHODS ---------------------------------------------------------
 
     /// Parses an inline `Whitespace`.
     pub fn parse_inline(
         reader: &mut Reader,
-        _context: &mut ParserContext,
+        context: &mut ParserContext,
     ) -> ParserResult<Whitespace> {
         cursor_manager(reader, |reader, init_cursor| {
-            if let Some(_) = reader.read_many_of(&WHITESPACE_CHARS) {
+            let mut is_multiline = false;
+            let mut elements = Vec::new();
+
+            loop {
+                let pre_cursor = reader.save_cursor();
+
+                if let Some(_) = reader.read_many_of(&WHITESPACE_CHARS) {
+                    let span = Arc::new(reader.substring_to_current(&pre_cursor));
+                    elements.push(WhitespaceElement::Whitespace(span));
+
+                    continue;
+                }
+
+                match Comment::parse_multiline(reader, context) {
+                    Ok(comment) => {
+                        is_multiline |= comment.is_multiline();
+                        elements.push(WhitespaceElement::Comment(Arc::new(comment)));
+
+                        continue;
+                    }
+                    Err(ParserResultError::NotFound) => { /* ignore */ }
+                    Err(ParserResultError::Error) => return Err(ParserResultError::Error),
+                }
+
+                break;
+            }
+
+            if elements.is_empty() {
+                Err(ParserResultError::NotFound)
+            } else {
                 let span = Arc::new(reader.substring_to_current(&init_cursor));
                 Ok(Whitespace {
                     span,
-                    is_multiline: false,
+                    is_multiline,
+                    elements,
                 })
-            } else {
-                Err(ParserResultError::NotFound)
             }
         })
     }
@@ -64,33 +105,70 @@ impl Whitespace {
     /// Parses a multiline `Whitespace`.
     pub fn parse_multiline(
         reader: &mut Reader,
-        _context: &mut ParserContext,
+        context: &mut ParserContext,
     ) -> ParserResult<Whitespace> {
         cursor_manager(reader, |reader, init_cursor| {
-            let mut any = false;
             let mut is_multiline = false;
+            let mut elements = Vec::new();
+
             loop {
-                match reader.read_many_of(&WHITESPACE_CHARS) {
-                    Some(_) => {
-                        any = true;
+                let pre_cursor = reader.save_cursor();
+
+                let mut any_whitespace = false;
+                loop {
+                    if let Some(_) = reader.read_many_of(&WHITESPACE_CHARS) {
+                        any_whitespace = true;
+                        continue;
                     }
-                    None => match reader.read_many_of(&MULTILINE_WHITESPACE_CHARS) {
-                        Some(_) => {
-                            any = true;
-                            is_multiline = true;
-                        }
-                        None => {
-                            break;
-                        }
-                    },
+
+                    if let Some(_) = reader.read_many_of(&MULTILINE_WHITESPACE_CHARS) {
+                        any_whitespace = true;
+                        is_multiline = true;
+                        continue;
+                    }
+
+                    break;
                 }
+
+                if any_whitespace {
+                    let span = Arc::new(reader.substring_to_current(&pre_cursor));
+                    elements.push(WhitespaceElement::Whitespace(span));
+                    any_whitespace = false;
+                }
+
+                match Comment::parse_inline(reader, context) {
+                    Ok(comment) => {
+                        elements.push(WhitespaceElement::Comment(Arc::new(comment)));
+
+                        continue;
+                    }
+                    Err(ParserResultError::NotFound) => { /* ignore */ }
+                    Err(ParserResultError::Error) => return Err(ParserResultError::Error),
+                }
+
+                match Comment::parse_multiline(reader, context) {
+                    Ok(comment) => {
+                        is_multiline |= comment.is_multiline();
+                        elements.push(WhitespaceElement::Comment(Arc::new(comment)));
+
+                        continue;
+                    }
+                    Err(ParserResultError::NotFound) => { /* ignore */ }
+                    Err(ParserResultError::Error) => return Err(ParserResultError::Error),
+                }
+
+                break;
             }
 
-            if any {
-                let span = Arc::new(reader.substring_to_current(&init_cursor));
-                Ok(Whitespace { span, is_multiline })
-            } else {
+            if elements.is_empty() {
                 Err(ParserResultError::NotFound)
+            } else {
+                let span = Arc::new(reader.substring_to_current(&init_cursor));
+                Ok(Whitespace {
+                    span,
+                    is_multiline,
+                    elements,
+                })
             }
         })
     }
@@ -100,6 +178,7 @@ impl Whitespace {
         Self::parse_inline(reader, context).unwrap_or(Whitespace {
             span: Arc::new(reader.substring_to_current(&reader.save_cursor())),
             is_multiline: false,
+            elements: Vec::new(),
         })
     }
 
@@ -111,6 +190,7 @@ impl Whitespace {
         Self::parse_multiline(reader, context).unwrap_or(Whitespace {
             span: Arc::new(reader.substring_to_current(&reader.save_cursor())),
             is_multiline: false,
+            elements: Vec::new(),
         })
     }
 }
@@ -145,6 +225,18 @@ mod tests {
             whitespace.is_multiline, false,
             "The is_multiline is incorrect"
         );
+        assert_eq!(
+            whitespace.elements.len(),
+            1,
+            "The elements.len is incorrect"
+        );
+
+        match &whitespace.elements[0] {
+            WhitespaceElement::Whitespace(v) => {
+                assert_eq!(v.content(), "  \t\t\t  \t", "The element is incorrect");
+            }
+            WhitespaceElement::Comment(_) => panic!("Incorrect element type"),
+        }
     }
 
     #[test]
@@ -166,7 +258,74 @@ mod tests {
                     whitespace.is_multiline, false,
                     "The is_multiline is incorrect"
                 );
+                assert_eq!(
+                    whitespace.elements.len(),
+                    1,
+                    "The elements.len is incorrect"
+                );
+
+                match &whitespace.elements[0] {
+                    WhitespaceElement::Whitespace(v) => {
+                        assert_eq!(v.content(), text.as_str(), "The element is incorrect");
+                    }
+                    WhitespaceElement::Comment(_) => panic!("Incorrect element type"),
+                }
             }
+        }
+    }
+
+    #[test]
+    fn test_parse_inline_with_comments() {
+        let mut reader = Reader::from_str("  #+multiline\ncomment+##++#  test");
+        let mut context = ParserContext::default();
+        let whitespace =
+            Whitespace::parse_inline(&mut reader, &mut context).expect("The parser must succeed");
+
+        assert_eq!(
+            whitespace.span.content(),
+            "  #+multiline\ncomment+##++#  ",
+            "The content is incorrect"
+        );
+        assert_eq!(
+            whitespace.is_multiline, true,
+            "The is_multiline is incorrect"
+        );
+        assert_eq!(
+            whitespace.elements.len(),
+            4,
+            "The elements.len is incorrect"
+        );
+
+        match &whitespace.elements[0] {
+            WhitespaceElement::Whitespace(v) => {
+                assert_eq!(v.content(), "  ", "The element[0] is incorrect");
+            }
+            WhitespaceElement::Comment(_) => panic!("Incorrect element type for 0"),
+        }
+
+        match &whitespace.elements[1] {
+            WhitespaceElement::Whitespace(v) => panic!("Incorrect element type for 1"),
+            WhitespaceElement::Comment(v) => {
+                assert_eq!(
+                    v.content(),
+                    "#+multiline\ncomment+#",
+                    "The element[1] is incorrect"
+                );
+            }
+        }
+
+        match &whitespace.elements[2] {
+            WhitespaceElement::Whitespace(v) => panic!("Incorrect element type for 2"),
+            WhitespaceElement::Comment(v) => {
+                assert_eq!(v.content(), "#++#", "The element[1] is incorrect");
+            }
+        }
+
+        match &whitespace.elements[3] {
+            WhitespaceElement::Whitespace(v) => {
+                assert_eq!(v.content(), "  ", "The element[3] is incorrect");
+            }
+            WhitespaceElement::Comment(_) => panic!("Incorrect element type for 3"),
         }
     }
 
@@ -186,6 +345,18 @@ mod tests {
             whitespace.is_multiline, false,
             "The is_multiline is incorrect"
         );
+        assert_eq!(
+            whitespace.elements.len(),
+            1,
+            "The elements.len is incorrect"
+        );
+
+        match &whitespace.elements[0] {
+            WhitespaceElement::Whitespace(v) => {
+                assert_eq!(v.content(), "  \t\t\t  \t", "The element is incorrect");
+            }
+            WhitespaceElement::Comment(_) => panic!("Incorrect element type"),
+        }
     }
 
     #[test]
@@ -204,6 +375,22 @@ mod tests {
             whitespace.is_multiline, true,
             "The is_multiline is incorrect"
         );
+        assert_eq!(
+            whitespace.elements.len(),
+            1,
+            "The elements.len is incorrect"
+        );
+
+        match &whitespace.elements[0] {
+            WhitespaceElement::Whitespace(v) => {
+                assert_eq!(
+                    v.content(),
+                    "\n\n \r\n \t\t\n\t \r \t",
+                    "The element is incorrect"
+                );
+            }
+            WhitespaceElement::Comment(_) => panic!("Incorrect element type"),
+        }
     }
 
     #[test]
@@ -225,6 +412,18 @@ mod tests {
                     whitespace.is_multiline, false,
                     "The is_multiline is incorrect"
                 );
+                assert_eq!(
+                    whitespace.elements.len(),
+                    1,
+                    "The elements.len is incorrect"
+                );
+
+                match &whitespace.elements[0] {
+                    WhitespaceElement::Whitespace(v) => {
+                        assert_eq!(v.content(), text.as_str(), "The element is incorrect");
+                    }
+                    WhitespaceElement::Comment(_) => panic!("Incorrect element type"),
+                }
             }
         }
 
@@ -245,7 +444,74 @@ mod tests {
                     whitespace.is_multiline, true,
                     "The is_multiline is incorrect"
                 );
+                assert_eq!(
+                    whitespace.elements.len(),
+                    1,
+                    "The elements.len is incorrect"
+                );
+
+                match &whitespace.elements[0] {
+                    WhitespaceElement::Whitespace(v) => {
+                        assert_eq!(v.content(), text.as_str(), "The element is incorrect");
+                    }
+                    WhitespaceElement::Comment(_) => panic!("Incorrect element type"),
+                }
             }
+        }
+    }
+
+    #[test]
+    fn test_parse_multiline_with_comments() {
+        let mut reader = Reader::from_str("  #+multiline\ncomment+## test\n x");
+        let mut context = ParserContext::default();
+        let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
+            .expect("The parser must succeed");
+
+        assert_eq!(
+            whitespace.span.content(),
+            "  #+multiline\ncomment+## test\n ",
+            "The content is incorrect"
+        );
+        assert_eq!(
+            whitespace.is_multiline, true,
+            "The is_multiline is incorrect"
+        );
+        assert_eq!(
+            whitespace.elements.len(),
+            4,
+            "The elements.len is incorrect"
+        );
+
+        match &whitespace.elements[0] {
+            WhitespaceElement::Whitespace(v) => {
+                assert_eq!(v.content(), "  ", "The element[0] is incorrect");
+            }
+            WhitespaceElement::Comment(_) => panic!("Incorrect element type for 0"),
+        }
+
+        match &whitespace.elements[1] {
+            WhitespaceElement::Whitespace(_) => panic!("Incorrect element type for 1"),
+            WhitespaceElement::Comment(v) => {
+                assert_eq!(
+                    v.content(),
+                    "#+multiline\ncomment+#",
+                    "The element[1] is incorrect"
+                );
+            }
+        }
+
+        match &whitespace.elements[2] {
+            WhitespaceElement::Whitespace(_) => panic!("Incorrect element type for 2"),
+            WhitespaceElement::Comment(v) => {
+                assert_eq!(v.content(), "# test", "The element[1] is incorrect");
+            }
+        }
+
+        match &whitespace.elements[3] {
+            WhitespaceElement::Whitespace(v) => {
+                assert_eq!(v.content(), "\n ", "The element[3] is incorrect");
+            }
+            WhitespaceElement::Comment(_) => panic!("Incorrect element type for 3"),
         }
     }
 }
