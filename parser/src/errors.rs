@@ -1,6 +1,8 @@
 /// The errors that parsers can throw.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum ParserError {
+    MultilineCommentWithoutEndToken,
+
     NumberWithSeparatorAfterPrefix,
     NumberWithoutDigitsAfterPrefix,
 
