@@ -116,6 +116,30 @@ impl Reader {
 
     // METHODS ----------------------------------------------------------------
 
+    /// Consumes the next character if present moving the start index forward.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use parser::io::Reader;
+    /// let mut reader = Reader::from_str("test");
+    /// assert_eq!(reader.read_one(), Some('t'));
+    /// assert_eq!(reader.read_one(), Some('e'));
+    /// assert_eq!(reader.read_one(), Some('s'));
+    /// assert_eq!(reader.read_one(), Some('t'));
+    /// assert_eq!(reader.read_one(), None);
+    /// ```
+    pub fn read_one(&mut self) -> Option<char> {
+        let remaining = self.remaining_content();
+        match remaining.chars().next() {
+            Some(v) => {
+                self.consume(v.len_utf8());
+                Some(v)
+            }
+            None => None,
+        }
+    }
+
     /// Consumes a `text` if present moving the start index forward.
     ///
     /// # Example
@@ -197,6 +221,103 @@ impl Reader {
         } else {
             None
         }
+    }
+
+    /// Consumes all characters until reading `text` if present, returns `None` otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use parser::io::Reader;
+    /// let mut reader = Reader::from_str("this is a test");
+    /// assert_eq!(reader.read_until("is", true), Some("th"));
+    /// assert_eq!(reader.read_until("a", false), Some("is is "));
+    ///
+    /// let mut reader = Reader::from_str("this is a test");
+    /// assert_eq!(reader.read_until("xx", true), Some("this is a test"));
+    ///
+    /// let mut reader = Reader::from_str("this is a test");
+    /// assert_eq!(reader.read_until("xx", false), None);
+    /// ```
+    pub fn read_until(&mut self, token: &str, is_end_valid: bool) -> Option<&str> {
+        let init_byte_offset = self.byte_offset();
+        let remaining = self.remaining_content();
+        let offset = match remaining.find(token) {
+            Some(v) => v,
+            None => {
+                if is_end_valid {
+                    remaining.len()
+                } else {
+                    return None;
+                }
+            }
+        };
+
+        self.consume(offset);
+
+        Some(&self.content[init_byte_offset..self.byte_offset()])
+    }
+
+    /// Consumes all characters until reading one of the characters specified by `interval` if present, returns `None` otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use parser::io::Reader;
+    /// let mut reader = Reader::from_str("this is a test");
+    /// assert_eq!(reader.read_until_one_of(&['a'..='a', 'i'..='i'], false), Some("th"));
+    /// assert_eq!(reader.read_until_one_of(&['a'..='a'], false), Some("is is "));
+    ///
+    /// let mut reader = Reader::from_str("this is a test");
+    /// assert_eq!(reader.read_until_one_of(&['x'..='x'], false), None);
+    ///
+    /// let mut reader = Reader::from_str("this is a test");
+    /// assert_eq!(reader.read_until_one_of(&['x'..='x'], true), Some("this is a test"));
+    /// ```
+    pub fn read_until_one_of(
+        &mut self,
+        interval: &[RangeInclusive<char>],
+        is_end_valid: bool,
+    ) -> Option<&str> {
+        let init_byte_offset = self.byte_offset();
+        let remaining = self.remaining_content();
+        let offset = match remaining.find(|c: char| Self::check_inside(c, interval)) {
+            Some(v) => v,
+            None => {
+                if is_end_valid {
+                    remaining.len()
+                } else {
+                    return None;
+                }
+            }
+        };
+
+        self.consume(offset);
+
+        Some(&self.content[init_byte_offset..self.byte_offset()])
+    }
+
+    /// Gets the next character if present. This method does not consume the character.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use parser::io::Reader;
+    /// let mut reader = Reader::from_str("test");
+    /// assert_eq!(reader.peek(), Some('t'));
+    /// assert_eq!(reader.peek(), Some('t'));
+    /// assert_eq!(reader.read_one(), Some('t'));
+    ///
+    /// assert_eq!(reader.peek(), Some('e'));
+    /// assert_eq!(reader.read_one(), Some('e'));
+    /// assert_eq!(reader.read_one(), Some('s'));
+    /// assert_eq!(reader.read_one(), Some('t'));
+    ///
+    /// assert_eq!(reader.peek(), None);
+    /// ```
+    pub fn peek(&self) -> Option<char> {
+        let remaining = self.remaining_content();
+        remaining.chars().next()
     }
 
     /// Checks whether the reader continues with the specified `text`.
