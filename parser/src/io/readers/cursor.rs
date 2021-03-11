@@ -1,10 +1,10 @@
 use crate::io::Reader;
 
 /// A specific position inside a `Reader`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Cursor {
     reader_id: usize,
-    offset: usize,
+    byte_offset: usize,
     char_offset: usize,
     line: usize,
     column: usize,
@@ -16,14 +16,14 @@ impl Cursor {
     /// Builds a new `Cursor` with the specified data.
     pub(in crate::io::readers) fn new(
         reader_id: usize,
-        offset: usize,
+        byte_offset: usize,
         char_offset: usize,
         line: usize,
         column: usize,
     ) -> Cursor {
         Cursor {
             reader_id,
-            offset,
+            byte_offset,
             char_offset,
             line,
             column,
@@ -38,8 +38,8 @@ impl Cursor {
     }
 
     /// The position of the `Cursor` in bytes.
-    pub fn offset(&self) -> usize {
-        self.offset
+    pub fn byte_offset(&self) -> usize {
+        self.byte_offset
     }
 
     /// The position of the `Cursor` in characters.
@@ -59,10 +59,10 @@ impl Cursor {
         self.column
     }
 
-    // GETTERS ----------------------------------------------------------------
+    // SETTERS ----------------------------------------------------------------
 
     pub(in crate::io::readers) fn set_offset(&mut self, offset: usize) {
-        self.offset = offset;
+        self.byte_offset = offset;
     }
 
     pub(in crate::io::readers) fn set_char_offset(&mut self, char_offset: usize) {
@@ -87,8 +87,8 @@ impl Cursor {
     /// # use parser::io::Reader;
     /// let reader1 = Reader::from_str("test1");
     /// let reader2 = Reader::from_str("test2");
-    /// let cursor1 = reader1.save();
-    /// let cursor2 = reader2.save();
+    /// let cursor1 = reader1.save_cursor();
+    /// let cursor2 = reader2.save_cursor();
     ///
     /// assert_eq!(cursor1.belongs_to(&reader1), true);
     /// assert_eq!(cursor2.belongs_to(&reader1), false);

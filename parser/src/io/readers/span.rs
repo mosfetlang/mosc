@@ -5,18 +5,22 @@ use memchr::{memchr, memrchr};
 use crate::io::Cursor;
 
 /// A Span is a set of meta information about the location of a substring.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Span {
     content: Arc<String>,
-    start_cursor: Cursor,
-    end_cursor: Cursor,
+    start_cursor: Arc<Cursor>,
+    end_cursor: Arc<Cursor>,
 }
 
 impl Span {
     // CONSTRUCTORS -----------------------------------------------------------
 
-    /// Create a new `Span` with the specified data.
-    pub(in crate) fn new(content: Arc<String>, start_cursor: Cursor, end_cursor: Cursor) -> Span {
+    /// Builds a new `Span` with the specified data.
+    pub(in crate) fn new(
+        content: Arc<String>,
+        start_cursor: Arc<Cursor>,
+        end_cursor: Arc<Cursor>,
+    ) -> Span {
         Span {
             content,
             start_cursor,
@@ -33,17 +37,17 @@ impl Span {
 
     /// The content of the `Span`.
     pub fn content(&self) -> &str {
-        &self.content[self.start_cursor.offset()..self.end_cursor.offset()]
+        &self.content[self.start_cursor.byte_offset()..self.end_cursor.byte_offset()]
     }
 
     /// The content before the `Span`.
     pub fn content_before(&self) -> &str {
-        &self.content[..self.start_cursor.offset()]
+        &self.content[..self.start_cursor.byte_offset()]
     }
 
     /// The content after the `Span`.
     pub fn content_after(&self) -> &str {
-        &self.content[self.end_cursor.offset()..]
+        &self.content[self.end_cursor.byte_offset()..]
     }
 
     /// The start position of the `Span` in bytes.
@@ -58,7 +62,7 @@ impl Span {
 
     /// The length of the `Span` in bytes.
     pub fn len(&self) -> usize {
-        self.end_cursor.offset() - self.start_cursor.offset()
+        self.end_cursor.byte_offset() - self.start_cursor.byte_offset()
     }
 
     /// The length of the `Span` in characters.
@@ -77,9 +81,9 @@ impl Span {
     ///
     /// // ... prepare the span to contain: "his\nis\nt" ...
     /// # reader.read("T");
-    /// # let from_cursor = reader.save();
+    /// # let from_cursor = reader.save_cursor();
     /// # reader.read("his\nis\nt");
-    /// # let to_cursor = reader.save();
+    /// # let to_cursor = reader.save_cursor();
     /// let span = reader.substring(&from_cursor, &to_cursor);
     ///
     /// // Get its lines.
@@ -92,7 +96,7 @@ impl Span {
         };
 
         let end_index = match memchr(b'\n', self.content_after().as_bytes()) {
-            Some(v) => v + self.end_cursor.offset(),
+            Some(v) => v + self.end_cursor.byte_offset(),
             None => self.content.len(),
         };
 
@@ -113,8 +117,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(0, 1, 0, 0, 0), // Only offset matters.
-            Cursor::new(0, 1, 0, 0, 0), // Only offset matters.
+            Arc::new(Cursor::new(0, 1, 0, 0, 0)), // Only offset matters.
+            Arc::new(Cursor::new(0, 1, 0, 0, 0)), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "This", "The lines is incorrect");
@@ -123,8 +127,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(0, 4, 0, 0, 0), // Only offset matters.
-            Cursor::new(0, 4, 0, 0, 0), // Only offset matters.
+            Arc::new(Cursor::new(0, 4, 0, 0, 0)), // Only offset matters.
+            Arc::new(Cursor::new(0, 4, 0, 0, 0)), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "This", "The lines is incorrect");
@@ -133,8 +137,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
-            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
+            Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
+            Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "is", "The lines is incorrect");
@@ -145,8 +149,8 @@ mod tests {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
             Arc::new(text.to_string()),
-            Cursor::new(0, 5, 0, 0, 0), // Only offset matters.
-            Cursor::new(0, 8, 0, 0, 0), // Only offset matters.
+            Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
+            Arc::new(Cursor::new(0, 8, 0, 0, 0)), // Only offset matters.
         );
 
         assert_eq!(span.lines(), "is\nthe", "The lines is incorrect");
