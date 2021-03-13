@@ -133,7 +133,6 @@ impl Whitespace {
                 if any_whitespace {
                     let span = Arc::new(reader.substring_to_current(&pre_cursor));
                     elements.push(WhitespaceElement::Whitespace(span));
-                    any_whitespace = false;
                 }
 
                 match Comment::parse_inline(reader, context) {
@@ -211,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_parse_inline() {
-        let mut reader = Reader::from_str("  \t\t\t  \t\n");
+        let mut reader = Reader::from_content(arcstr::literal!("  \t\t\t  \t\n"));
         let mut context = ParserContext::default();
         let whitespace =
             Whitespace::parse_inline(&mut reader, &mut context).expect("The parser must succeed");
@@ -244,7 +243,7 @@ mod tests {
         for char_range in &WHITESPACE_CHARS {
             for char in char_range.clone() {
                 let text = format!("{}", char);
-                let mut reader = Reader::from_str(text.as_str());
+                let mut reader = Reader::from_content(text.as_str().into());
                 let mut context = ParserContext::default();
                 let whitespace = Whitespace::parse_inline(&mut reader, &mut context)
                     .expect("The parser must succeed");
@@ -276,7 +275,8 @@ mod tests {
 
     #[test]
     fn test_parse_inline_with_comments() {
-        let mut reader = Reader::from_str("  #+multiline\ncomment+##++#  test");
+        let mut reader =
+            Reader::from_content(arcstr::literal!("  #+multiline\ncomment+##++#  test"));
         let mut context = ParserContext::default();
         let whitespace =
             Whitespace::parse_inline(&mut reader, &mut context).expect("The parser must succeed");
@@ -304,7 +304,7 @@ mod tests {
         }
 
         match &whitespace.elements[1] {
-            WhitespaceElement::Whitespace(v) => panic!("Incorrect element type for 1"),
+            WhitespaceElement::Whitespace(_) => panic!("Incorrect element type for 1"),
             WhitespaceElement::Comment(v) => {
                 assert_eq!(
                     v.content(),
@@ -315,7 +315,7 @@ mod tests {
         }
 
         match &whitespace.elements[2] {
-            WhitespaceElement::Whitespace(v) => panic!("Incorrect element type for 2"),
+            WhitespaceElement::Whitespace(_) => panic!("Incorrect element type for 2"),
             WhitespaceElement::Comment(v) => {
                 assert_eq!(v.content(), "#++#", "The element[1] is incorrect");
             }
@@ -331,7 +331,7 @@ mod tests {
 
     #[test]
     fn test_parse_multiline_without_jump_lines() {
-        let mut reader = Reader::from_str("  \t\t\t  \t-rest");
+        let mut reader = Reader::from_content(arcstr::literal!("  \t\t\t  \t-rest"));
         let mut context = ParserContext::default();
         let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
             .expect("The parser must succeed");
@@ -361,7 +361,7 @@ mod tests {
 
     #[test]
     fn test_parse_multiline_with_jump_lines() {
-        let mut reader = Reader::from_str("\n\n \r\n \t\t\n\t \r \t-rest");
+        let mut reader = Reader::from_content(arcstr::literal!("\n\n \r\n \t\t\n\t \r \t-rest"));
         let mut context = ParserContext::default();
         let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
             .expect("The parser must succeed");
@@ -398,7 +398,7 @@ mod tests {
         for char_range in &WHITESPACE_CHARS {
             for char in char_range.clone() {
                 let text = format!("{}", char);
-                let mut reader = Reader::from_str(text.as_str());
+                let mut reader = Reader::from_content(text.as_str().into());
                 let mut context = ParserContext::default();
                 let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
                     .expect("The parser must succeed");
@@ -430,7 +430,7 @@ mod tests {
         for char_range in &MULTILINE_WHITESPACE_CHARS {
             for char in char_range.clone() {
                 let text = format!("{}", char);
-                let mut reader = Reader::from_str(text.as_str());
+                let mut reader = Reader::from_content(text.as_str().into());
                 let mut context = ParserContext::default();
                 let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
                     .expect("The parser must succeed");
@@ -462,7 +462,8 @@ mod tests {
 
     #[test]
     fn test_parse_multiline_with_comments() {
-        let mut reader = Reader::from_str("  #+multiline\ncomment+## test\n x");
+        let mut reader =
+            Reader::from_content(arcstr::literal!("  #+multiline\ncomment+## test\n x"));
         let mut context = ParserContext::default();
         let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
             .expect("The parser must succeed");

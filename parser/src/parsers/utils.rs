@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use arcstr::ArcStr;
 
 use doclog::blocks::DocumentBlock;
 use doclog::Log;
@@ -30,26 +30,26 @@ where
     }
 }
 
-pub fn generate_warning_log<F>(warning_type: ParserWarning, title: String, builder: F) -> Log
+pub fn generate_warning_log<F>(warning_type: ParserWarning, title: ArcStr, builder: F) -> Log
 where
     F: FnOnce(Log) -> Log,
 {
-    builder(Log::warn().title(Arc::new(title), true, false)).indent(2, |log| {
+    builder(Log::warn().title(title, true, false)).indent(2, |log| {
         log.note(
             LOG_WARNING_ID_TITLE.clone(),
-            Arc::new(format!("{:?}", warning_type).to_string()),
+            format!("{:?}", warning_type).into(),
         )
     })
 }
 
-pub fn generate_error_log<F>(error_type: ParserError, title: String, builder: F) -> Log
+pub fn generate_error_log<F>(error_type: ParserError, title: ArcStr, builder: F) -> Log
 where
     F: FnOnce(Log) -> Log,
 {
-    builder(Log::error().title(Arc::new(title), true, false)).indent(2, |log| {
+    builder(Log::error().title(title, true, false)).indent(2, |log| {
         log.note(
             LOG_ERROR_ID_TITLE.clone(),
-            Arc::new(format!("{:?}", error_type).to_string()),
+            format!("{:?}", error_type).into(),
         )
     })
 }

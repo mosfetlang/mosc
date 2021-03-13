@@ -216,7 +216,8 @@ impl IntegerNumber {
                                 "A number cannot start with a separator '{}' after the prefix '{}'",
                                 SEPARATOR_RANGE.first().unwrap().start(),
                                 prefix
-                            ),
+                            )
+                            .into(),
                             |log| {
                                 generate_source_code(log, &reader, |doc| {
                                     doc.highlight_section(
@@ -225,9 +226,9 @@ impl IntegerNumber {
                                         None,
                                         Some(Color::Magenta),
                                     )
-                                    .highlight_section_str(
+                                    .highlight_section(
                                         init_cursor.byte_offset()..reader.byte_offset(),
-                                        Some("Remove this token"),
+                                        Some(arcstr::literal!("Remove this token")),
                                         None,
                                     )
                                 })
@@ -243,7 +244,8 @@ impl IntegerNumber {
                         format!(
                             "At least one digit was expected after the prefix '{}'",
                             prefix
-                        ),
+                        )
+                        .into(),
                         |log| {
                             generate_source_code(log, &reader, |doc| {
                                 doc.highlight_section(
@@ -252,9 +254,9 @@ impl IntegerNumber {
                                     None,
                                     Some(Color::Magenta),
                                 )
-                                .highlight_cursor_str(
+                                .highlight_cursor(
                                     reader.byte_offset(),
-                                    Some("Add a digit here, e.g. 0"),
+                                    Some(arcstr::literal!("Add a digit here, e.g. 0")),
                                     None,
                                 )
                             })
@@ -324,7 +326,7 @@ impl IntegerNumber {
 
         context.add_message(generate_warning_log(
             ParserWarning::NumberWithLeadingZeroes,
-            "Leading zeroes are unnecessary".to_string(),
+            arcstr::literal!("Leading zeroes are unnecessary"),
             |log| {
                 generate_source_code(log, &reader, |doc| {
                     let doc = if prefix.len() != 0 {
@@ -338,13 +340,13 @@ impl IntegerNumber {
                         doc
                     };
 
-                    doc.highlight_section_str(
+                    doc.highlight_section(
                         digits.start_cursor().byte_offset()
                             ..(digits.start_cursor().byte_offset() + number_of_zeroes),
                         Some(if number_of_zeroes == 1 {
-                            "Remove this zero"
+                            arcstr::literal!("Remove this zero")
                         } else {
-                            "Remove these zeroes"
+                            arcstr::literal!("Remove these zeroes")
                         }),
                         None,
                     )
@@ -380,7 +382,7 @@ mod tests {
     #[test]
     fn test_parse() {
         // Decimal without prefix.
-        let mut reader = Reader::from_str("25/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("25/rest"));
         let mut context = ParserContext::default();
         let number =
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -398,7 +400,7 @@ mod tests {
         assert_eq!(number.radix, Radix::Decimal, "The radix field is incorrect");
 
         // Binary with prefix.
-        let mut reader = Reader::from_str("0b10/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("0b10/rest"));
         let mut context = ParserContext::default();
         let number =
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -413,7 +415,7 @@ mod tests {
         assert_eq!(number.radix, Radix::Binary, "The radix field is incorrect");
 
         // Octal with prefix.
-        let mut reader = Reader::from_str("0o74/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("0o74/rest"));
         let mut context = ParserContext::default();
         let number =
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -428,7 +430,7 @@ mod tests {
         assert_eq!(number.radix, Radix::Octal, "The radix field is incorrect");
 
         // Decimal with prefix.
-        let mut reader = Reader::from_str("0d53/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("0d53/rest"));
         let mut context = ParserContext::default();
         let number =
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -443,7 +445,7 @@ mod tests {
         assert_eq!(number.radix, Radix::Decimal, "The radix field is incorrect");
 
         // Hexadecimal with prefix.
-        let mut reader = Reader::from_str("0x123/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("0x123/rest"));
         let mut context = ParserContext::default();
         let number =
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -464,7 +466,7 @@ mod tests {
 
     #[test]
     fn test_parse_binary() {
-        let mut reader = Reader::from_str("1010101010/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("1010101010/rest"));
         let mut context = ParserContext::default();
         let number = IntegerNumber::parse_binary(&mut reader, &mut context)
             .expect("The parser must succeed");
@@ -484,7 +486,7 @@ mod tests {
 
     #[test]
     fn test_parse_binary_with_underscores() {
-        let mut reader = Reader::from_str("101_01_____0101____0/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("101_01_____0101____0/rest"));
         let mut context = ParserContext::default();
         let number = IntegerNumber::parse_binary(&mut reader, &mut context)
             .expect("The parser must succeed");
@@ -508,7 +510,7 @@ mod tests {
 
     #[test]
     fn test_parse_octal() {
-        let mut reader = Reader::from_str("12345670/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("12345670/rest"));
         let mut context = ParserContext::default();
         let number =
             IntegerNumber::parse_octal(&mut reader, &mut context).expect("The parser must succeed");
@@ -528,7 +530,7 @@ mod tests {
 
     #[test]
     fn test_parse_octal_with_underscores() {
-        let mut reader = Reader::from_str("12_34_____56___70/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("12_34_____56___70/rest"));
         let mut context = ParserContext::default();
         let number =
             IntegerNumber::parse_octal(&mut reader, &mut context).expect("The parser must succeed");
@@ -552,7 +554,7 @@ mod tests {
 
     #[test]
     fn test_parse_decimal() {
-        let mut reader = Reader::from_str("1234567890/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("1234567890/rest"));
         let mut context = ParserContext::default();
         let number = IntegerNumber::parse_decimal(&mut reader, &mut context)
             .expect("The parser must succeed");
@@ -572,7 +574,7 @@ mod tests {
 
     #[test]
     fn test_parse_decimal_with_underscores() {
-        let mut reader = Reader::from_str("1_234_____567___890/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("1_234_____567___890/rest"));
         let mut context = ParserContext::default();
         let number = IntegerNumber::parse_decimal(&mut reader, &mut context)
             .expect("The parser must succeed");
@@ -596,7 +598,7 @@ mod tests {
 
     #[test]
     fn test_parse_hexadecimal() {
-        let mut reader = Reader::from_str("1234567890abcdefABCDEF/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("1234567890abcdefABCDEF/rest"));
         let mut context = ParserContext::default();
         let number = IntegerNumber::parse_hexadecimal(&mut reader, &mut context)
             .expect("The parser must succeed");
@@ -624,7 +626,9 @@ mod tests {
 
     #[test]
     fn test_parse_hexadecimal_with_underscores() {
-        let mut reader = Reader::from_str("12_345678______90ab____cdefA____BCDEF/rest");
+        let mut reader = Reader::from_content(arcstr::literal!(
+            "12_345678______90ab____cdefA____BCDEF/rest"
+        ));
         let mut context = ParserContext::default();
         let number = IntegerNumber::parse_hexadecimal(&mut reader, &mut context)
             .expect("The parser must succeed");
@@ -658,8 +662,8 @@ mod tests {
             DECIMAL_PREFIX,
             HEXADECIMAL_PREFIX,
         ] {
-            let mut reader = Reader::from_str(
-                format!("{}{}", prefix, SEPARATOR_RANGE.last().unwrap().start()).as_str(),
+            let mut reader = Reader::from_content(
+                format!("{}{}", prefix, SEPARATOR_RANGE.last().unwrap().start()).into(),
             );
             let mut context = ParserContext::default();
             let error = IntegerNumber::parse(&mut reader, &mut context)
@@ -681,7 +685,7 @@ mod tests {
             DECIMAL_PREFIX,
             HEXADECIMAL_PREFIX,
         ] {
-            let mut reader = Reader::from_str(prefix);
+            let mut reader = Reader::from_content((*prefix).into());
             let mut context = ParserContext::default();
             let error = IntegerNumber::parse(&mut reader, &mut context)
                 .expect_err("The parser must not succeed");
@@ -696,7 +700,7 @@ mod tests {
 
     #[test]
     fn test_warning_leading_zeroes() {
-        let mut reader = Reader::from_str("000");
+        let mut reader = Reader::from_content(arcstr::literal!("000"));
         let mut context = ParserContext::default();
         IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -708,7 +712,7 @@ mod tests {
             DECIMAL_PREFIX,
             HEXADECIMAL_PREFIX,
         ] {
-            let mut reader = Reader::from_str(format!("{}00", prefix).as_str());
+            let mut reader = Reader::from_content(format!("{}00", prefix).into());
             let mut context = ParserContext::default();
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -718,7 +722,7 @@ mod tests {
 
     #[test]
     fn test_ignore_warning_leading_zeroes() {
-        let mut reader = Reader::from_str("000");
+        let mut reader = Reader::from_content(arcstr::literal!("000"));
         let mut ignore = ParserIgnoreConfig::new();
         ignore.number_leading_zeroes = true;
 
@@ -731,7 +735,7 @@ mod tests {
     #[test]
     fn test_warning_leading_zeroes_ignores_ok_numbers() {
         for number in &["0", "1", "10101"] {
-            let mut reader = Reader::from_str(number);
+            let mut reader = Reader::from_content((*number).into());
             let mut context = ParserContext::default();
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -743,7 +747,7 @@ mod tests {
                 DECIMAL_PREFIX,
                 HEXADECIMAL_PREFIX,
             ] {
-                let mut reader = Reader::from_str(format!("{}{}", prefix, number).as_str());
+                let mut reader = Reader::from_content(format!("{}{}", prefix, number).into());
                 let mut context = ParserContext::default();
                 IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 

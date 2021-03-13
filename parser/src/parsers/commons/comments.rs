@@ -115,7 +115,8 @@ impl Comment {
                     format!(
                         "The end token '{}' was expected here to close the multiline comment",
                         close_token
-                    ),
+                    )
+                    .into(),
                     |log| {
                         generate_source_code(log, &reader, |doc| {
                             doc.highlight_section(
@@ -125,15 +126,14 @@ impl Comment {
                             )
                             .highlight_cursor(
                                 reader.byte_offset(),
-                                Some(Arc::new(format!(
-                                    "Insert here the close token '{}'",
-                                    close_token
-                                ))),
+                                Some(
+                                    format!("Insert here the close token '{}'", close_token).into(),
+                                ),
                                 None,
                             )
                             .related_document(|doc| {
                                 let end_position = reader.content().len();
-                                doc.title_str("or")
+                                doc.title(arcstr::literal!("or"))
                                     .highlight_section(
                                         init_cursor.byte_offset()..end_position,
                                         None,
@@ -141,10 +141,13 @@ impl Comment {
                                     )
                                     .highlight_cursor(
                                         end_position,
-                                        Some(Arc::new(format!(
-                                            "Insert here the close token '{}'",
-                                            close_token
-                                        ))),
+                                        Some(
+                                            format!(
+                                                "Insert here the close token '{}'",
+                                                close_token
+                                            )
+                                            .into(),
+                                        ),
                                         None,
                                     )
                             })
@@ -186,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_parse_inline() {
-        let mut reader = Reader::from_str("# This is a comment\n");
+        let mut reader = Reader::from_content(arcstr::literal!("# This is a comment\n"));
         let mut context = ParserContext::default();
         let comment =
             Comment::parse_inline(&mut reader, &mut context).expect("The parser must succeed");
@@ -213,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_parse_inline_till_end() {
-        let mut reader = Reader::from_str("# This is a comment");
+        let mut reader = Reader::from_content(arcstr::literal!("# This is a comment"));
         let mut context = ParserContext::default();
         let comment =
             Comment::parse_inline(&mut reader, &mut context).expect("The parser must succeed");
@@ -241,7 +244,7 @@ mod tests {
     #[test]
     fn test_parse_inline_not_found() {
         for content in &["", "#", "#This is a comment"] {
-            let mut reader = Reader::from_str(content);
+            let mut reader = Reader::from_content((*content).into());
             let mut context = ParserContext::default();
             let error = Comment::parse_inline(&mut reader, &mut context)
                 .expect_err("The parser must not succeed");
@@ -252,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_parse_multiline() {
-        let mut reader = Reader::from_str("#+This is a\n # + comment+#");
+        let mut reader = Reader::from_content(arcstr::literal!("#+This is a\n # + comment+#"));
         let mut context = ParserContext::default();
         let comment =
             Comment::parse_multiline(&mut reader, &mut context).expect("The parser must succeed");
@@ -279,7 +282,8 @@ mod tests {
 
     #[test]
     fn test_parse_multiline_many_tokens() {
-        let mut reader = Reader::from_str("#+++This is a ++# +# # + comment++++#");
+        let mut reader =
+            Reader::from_content(arcstr::literal!("#+++This is a ++# +# # + comment++++#"));
         let mut context = ParserContext::default();
         let comment =
             Comment::parse_multiline(&mut reader, &mut context).expect("The parser must succeed");
@@ -307,7 +311,7 @@ mod tests {
     #[test]
     fn test_parse_multiline_immediately_closed() {
         for content in &["#+#", "#++#", "#+++#"] {
-            let mut reader = Reader::from_str(content);
+            let mut reader = Reader::from_content((*content).into());
             let mut context = ParserContext::default();
             let comment = Comment::parse_multiline(&mut reader, &mut context)
                 .expect("The parser must succeed");
@@ -329,7 +333,7 @@ mod tests {
     #[test]
     fn test_parse_multiline_not_found() {
         for content in &["", "#", "#This is a comment"] {
-            let mut reader = Reader::from_str(content);
+            let mut reader = Reader::from_content((*content).into());
             let mut context = ParserContext::default();
             let error = Comment::parse_multiline(&mut reader, &mut context)
                 .expect_err("The parser must not succeed");
@@ -340,7 +344,7 @@ mod tests {
 
     #[test]
     fn test_parse_multiline_err_without_end_token() {
-        let mut reader = Reader::from_str("#++ This is a comment");
+        let mut reader = Reader::from_content(arcstr::literal!("#++ This is a comment"));
         let mut context = ParserContext::default();
         let error = Comment::parse_multiline(&mut reader, &mut context)
             .expect_err("The parser must not succeed");

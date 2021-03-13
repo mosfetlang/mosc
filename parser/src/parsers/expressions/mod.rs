@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn test_parse_literal() {
-        let mut reader = Reader::from_str("25/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("25/rest"));
         let mut context = ParserContext::default();
         let expression =
             Expression::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn test_parse_variable_access() {
-        let mut reader = Reader::from_str("name/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("name/rest"));
         let mut context = ParserContext::default();
         let expression =
             Expression::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_not_found() {
-        let mut reader = Reader::from_str("-");
+        let mut reader = Reader::from_content(arcstr::literal!("-"));
         let mut context = ParserContext::default();
         let error =
             Expression::parse(&mut reader, &mut context).expect_err("The parser must not succeed");

@@ -68,7 +68,7 @@ impl VariableDeclaration {
                 Err(_) => {
                     context.add_message(generate_error_log(
                         ParserError::MissingNameInVariableDeclaration,
-                        "The variable name is missing".to_string(),
+                        arcstr::literal!("The variable name is missing"),
                         |log| {
                             generate_source_code(log, &reader, |doc| {
                                 doc.highlight_section(
@@ -77,9 +77,9 @@ impl VariableDeclaration {
                                     None,
                                     Some(Color::Magenta),
                                 )
-                                .highlight_cursor_str(
+                                .highlight_cursor(
                                     pre_name_whitespace.span().start_cursor().byte_offset(),
-                                    Some("Insert an identifier here"),
+                                    Some(arcstr::literal!("Insert an identifier here")),
                                     None,
                                 )
                             })
@@ -96,30 +96,32 @@ impl VariableDeclaration {
             if !reader.read(ASSIGN_OPERATOR) {
                 context.add_message(generate_error_log(
                     ParserError::MissingAssignOperatorInVariableDeclaration,
-                    "The assign operator is required after the variable name to define its value"
-                        .to_string(),
+                    arcstr::literal!("The assign operator is required after the variable name to define its value"),
                     |log| {
                         generate_source_code(log, &reader, |doc| {
                             doc.highlight_section(
                                 init_cursor.byte_offset()
                                     ..pre_assign_operator_whitespace
-                                        .span()
-                                        .start_cursor()
-                                        .byte_offset(),
-                                None,
-                                Some(Color::Magenta),
-                            )
-                            .highlight_cursor(
-                                pre_assign_operator_whitespace
                                     .span()
                                     .start_cursor()
                                     .byte_offset(),
-                                Some(Arc::new(format!(
-                                    "Insert the assign operator '{}' here",
-                                    ASSIGN_OPERATOR
-                                ))),
                                 None,
+                                Some(Color::Magenta),
                             )
+                                .highlight_cursor(
+                                    pre_assign_operator_whitespace
+                                        .span()
+                                        .start_cursor()
+                                        .byte_offset(),
+                                    Some(
+                                        format!(
+                                            "Insert the assign operator '{}' here",
+                                            ASSIGN_OPERATOR
+                                        )
+                                            .into(),
+                                    ),
+                                    None,
+                                )
                         })
                     },
                 ));
@@ -134,7 +136,7 @@ impl VariableDeclaration {
                 Err(_) => {
                     context.add_message(generate_error_log(
                         ParserError::MissingExpressionInVariableDeclaration,
-                        "An expression is expected after the assign operator".to_string(),
+                        arcstr::literal!("An expression is expected after the assign operator"),
                         |log| {
                             generate_source_code(log, &reader, |doc| {
                                 doc.highlight_section(
@@ -146,12 +148,12 @@ impl VariableDeclaration {
                                     None,
                                     Some(Color::Magenta),
                                 )
-                                .highlight_cursor_str(
+                                .highlight_cursor(
                                     pre_expression_whitespace
                                         .span()
                                         .start_cursor()
                                         .byte_offset(),
-                                    Some("Insert an expression here"),
+                                    Some(arcstr::literal!("Insert an expression here")),
                                     None,
                                 )
                             })
@@ -195,7 +197,7 @@ mod tests {
     #[test]
     fn test_parse() {
         // With whitespaces.
-        let mut reader = Reader::from_str("let    test   =   a");
+        let mut reader = Reader::from_content(arcstr::literal!("let    test   =   a"));
         let mut context = ParserContext::default();
         let declaration =
             VariableDeclaration::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -208,7 +210,7 @@ mod tests {
         }
 
         // Without whitespaces.
-        let mut reader = Reader::from_str("let test=a");
+        let mut reader = Reader::from_content(arcstr::literal!("let test=a"));
         let mut context = ParserContext::default();
         let declaration =
             VariableDeclaration::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -223,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_not_found() {
-        let mut reader = Reader::from_str("-");
+        let mut reader = Reader::from_content(arcstr::literal!("-"));
         let mut context = ParserContext::default();
         let error = VariableDeclaration::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");
@@ -233,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_missing_variable_name() {
-        let mut reader = Reader::from_str("let");
+        let mut reader = Reader::from_content(arcstr::literal!("let"));
         let mut context = ParserContext::default();
         let error = VariableDeclaration::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");
@@ -247,7 +249,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_missing_assign_operator() {
-        let mut reader = Reader::from_str("let test");
+        let mut reader = Reader::from_content(arcstr::literal!("let test"));
         let mut context = ParserContext::default();
         let error = VariableDeclaration::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");
@@ -261,7 +263,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_missing_expression() {
-        let mut reader = Reader::from_str("let test =");
+        let mut reader = Reader::from_content(arcstr::literal!("let test ="));
         let mut context = ParserContext::default();
         let error = VariableDeclaration::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");

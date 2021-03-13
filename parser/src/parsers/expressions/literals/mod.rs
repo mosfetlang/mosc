@@ -52,7 +52,7 @@ mod tests {
     #[test]
     fn test_parse_number() {
         // Decimal without prefix.
-        let mut reader = Reader::from_str("25/rest");
+        let mut reader = Reader::from_content(arcstr::literal!("25/rest"));
         let mut context = ParserContext::default();
         let literal = Literal::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_not_found() {
-        let mut reader = Reader::from_str("-");
+        let mut reader = Reader::from_content(arcstr::literal!("-"));
         let mut context = ParserContext::default();
         let error =
             Literal::parse(&mut reader, &mut context).expect_err("The parser must not succeed");

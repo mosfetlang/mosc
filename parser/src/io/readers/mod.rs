@@ -2,6 +2,7 @@ use std::ops::RangeInclusive;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
+use arcstr::ArcStr;
 use bytecount::num_chars;
 use memchr::Memchr;
 
@@ -17,8 +18,8 @@ static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 #[derive(Debug, Clone)]
 pub struct Reader {
     id: usize,
-    file_path: Option<Arc<String>>,
-    content: Arc<String>,
+    file_path: Option<ArcStr>,
+    content: ArcStr,
     cursor: Cursor,
 }
 
@@ -26,7 +27,7 @@ impl Reader {
     // CONSTRUCTORS -----------------------------------------------------------
 
     /// Create a new `Reader` with the specified `file_path` and `content`.
-    pub fn new(file_path: Option<Arc<String>>, content: Arc<String>) -> Reader {
+    pub fn new(file_path: Option<ArcStr>, content: ArcStr) -> Reader {
         let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
         Reader {
             id,
@@ -37,24 +38,19 @@ impl Reader {
     }
 
     /// Create a new `Reader` with the specified `content`.
-    pub fn from_str(content: &str) -> Reader {
-        Self::new(None, Arc::new(content.to_string()))
-    }
-
-    /// Create a new `Reader` with the specified `content`.
-    pub fn from_content(content: Arc<String>) -> Reader {
+    pub fn from_content(content: ArcStr) -> Reader {
         Self::new(None, content)
     }
 
     // GETTERS ----------------------------------------------------------------
 
     /// The file path of the `Reader` if there's any.
-    pub fn file_path(&self) -> &Option<Arc<String>> {
+    pub fn file_path(&self) -> &Option<ArcStr> {
         &self.file_path
     }
 
     /// The content of the `Reader`.
-    pub fn content(&self) -> &Arc<String> {
+    pub fn content(&self) -> &ArcStr {
         &self.content
     }
 
@@ -122,7 +118,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("test"));
     /// assert_eq!(reader.read_one(), Some('t'));
     /// assert_eq!(reader.read_one(), Some('e'));
     /// assert_eq!(reader.read_one(), Some('s'));
@@ -146,7 +142,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("test"));
     /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.read("tes");
@@ -172,7 +168,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("te");
+    /// let mut reader = Reader::from_content(arcstr::literal!("te"));
     /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.read_one_of(&['a'..='z']);
@@ -202,7 +198,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("this test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this test"));
     /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.read_many_of(&['a'..='z']);
@@ -229,14 +225,14 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("this is a test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this is a test"));
     /// assert_eq!(reader.read_until("is", true), Some("th"));
     /// assert_eq!(reader.read_until("a", false), Some("is is "));
     ///
-    /// let mut reader = Reader::from_str("this is a test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this is a test"));
     /// assert_eq!(reader.read_until("xx", true), Some("this is a test"));
     ///
-    /// let mut reader = Reader::from_str("this is a test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this is a test"));
     /// assert_eq!(reader.read_until("xx", false), None);
     /// ```
     pub fn read_until(&mut self, token: &str, is_end_valid: bool) -> Option<&str> {
@@ -264,14 +260,14 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("this is a test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this is a test"));
     /// assert_eq!(reader.read_until_one_of(&['a'..='a', 'i'..='i'], false), Some("th"));
     /// assert_eq!(reader.read_until_one_of(&['a'..='a'], false), Some("is is "));
     ///
-    /// let mut reader = Reader::from_str("this is a test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this is a test"));
     /// assert_eq!(reader.read_until_one_of(&['x'..='x'], false), None);
     ///
-    /// let mut reader = Reader::from_str("this is a test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this is a test"));
     /// assert_eq!(reader.read_until_one_of(&['x'..='x'], true), Some("this is a test"));
     /// ```
     pub fn read_until_one_of(
@@ -303,7 +299,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("test"));
     /// assert_eq!(reader.peek(), Some('t'));
     /// assert_eq!(reader.peek(), Some('t'));
     /// assert_eq!(reader.read_one(), Some('t'));
@@ -327,7 +323,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("test"));
     /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// assert_eq!(reader.continues_with("tes"), true);
@@ -348,7 +344,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("test"));
     /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.continues_with_one_of(&['a'..='z']);
@@ -382,7 +378,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("this test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this test"));
     /// assert_eq!(reader.byte_offset(), 0);
     ///
     /// let result = reader.continues_with_many_of(&['a'..='z']);
@@ -424,7 +420,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("this test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this test"));
     /// reader.read("th");
     ///
     /// let from = reader.save_cursor();
@@ -471,7 +467,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("this test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this test"));
     /// reader.read("th");
     ///
     /// let from = reader.save_cursor();
@@ -505,7 +501,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("this test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this test"));
     /// reader.read("th");
     ///
     /// let cursor = reader.save_cursor();
@@ -526,7 +522,7 @@ impl Reader {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("this test");
+    /// let mut reader = Reader::from_content(arcstr::literal!("this test"));
     /// let cursor = reader.save_cursor();
     ///
     /// assert_eq!(reader.byte_offset(), 0);
@@ -621,7 +617,7 @@ mod tests {
     #[test]
     fn test_consume_0() {
         let text = "This\nis\nthe\nfragment";
-        let mut reader = Reader::from_str(text);
+        let mut reader = Reader::from_content(text.into());
         reader.consume(0);
 
         assert_eq!(reader.byte_offset(), 0, "The offset is incorrect");
@@ -633,7 +629,7 @@ mod tests {
     #[test]
     fn test_consume() {
         let text = "This\nis\nthe\nfragment";
-        let mut reader = Reader::from_str(text);
+        let mut reader = Reader::from_content(text.into());
         reader.consume(2);
 
         assert_eq!(reader.byte_offset(), 2, "The offset is incorrect");
@@ -659,7 +655,7 @@ mod tests {
     #[test]
     fn test_consume_utf_chars() {
         let text = "モスフェト";
-        let mut reader = Reader::from_str(text);
+        let mut reader = Reader::from_content(text.into());
         reader.consume(3);
 
         assert_eq!(reader.byte_offset(), 3, "The offset is incorrect");

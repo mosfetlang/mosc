@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use arcstr::ArcStr;
 use memchr::{memchr, memrchr};
 
 use crate::io::Cursor;
@@ -7,7 +8,7 @@ use crate::io::Cursor;
 /// A Span is a set of meta information about the location of a substring.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Span {
-    content: Arc<String>,
+    content: ArcStr,
     start_cursor: Arc<Cursor>,
     end_cursor: Arc<Cursor>,
 }
@@ -17,7 +18,7 @@ impl Span {
 
     /// Builds a new `Span` with the specified data.
     pub(in crate) fn new(
-        content: Arc<String>,
+        content: ArcStr,
         start_cursor: Arc<Cursor>,
         end_cursor: Arc<Cursor>,
     ) -> Span {
@@ -31,7 +32,7 @@ impl Span {
     // GETTERS ----------------------------------------------------------------
 
     /// The whole content the `Span` belongs to.
-    pub fn whole_content(&self) -> &Arc<String> {
+    pub fn whole_content(&self) -> &ArcStr {
         &self.content
     }
 
@@ -77,7 +78,7 @@ impl Span {
     ///
     /// ```
     /// # use parser::io::Reader;
-    /// let mut reader = Reader::from_str("This\nis\nthe\nfragment");
+    /// let mut reader = Reader::from_content(arcstr::literal!("This\nis\nthe\nfragment"));
     ///
     /// // ... prepare the span to contain: "his\nis\nt" ...
     /// # reader.read("T");
@@ -116,7 +117,7 @@ mod tests {
     fn test_lines_single_line() {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
-            Arc::new(text.to_string()),
+            text.into(),
             Arc::new(Cursor::new(0, 1, 0, 0, 0)), // Only offset matters.
             Arc::new(Cursor::new(0, 1, 0, 0, 0)), // Only offset matters.
         );
@@ -126,7 +127,7 @@ mod tests {
         // Check at \n
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
-            Arc::new(text.to_string()),
+            text.into(),
             Arc::new(Cursor::new(0, 4, 0, 0, 0)), // Only offset matters.
             Arc::new(Cursor::new(0, 4, 0, 0, 0)), // Only offset matters.
         );
@@ -136,7 +137,7 @@ mod tests {
         // Check next of \n
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
-            Arc::new(text.to_string()),
+            text.into(),
             Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
             Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
         );
@@ -148,7 +149,7 @@ mod tests {
     fn test_lines_multiline() {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
-            Arc::new(text.to_string()),
+            text.into(),
             Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
             Arc::new(Cursor::new(0, 8, 0, 0, 0)), // Only offset matters.
         );

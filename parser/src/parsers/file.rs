@@ -49,7 +49,7 @@ impl MosfetFile {
                     } else {
                         context.add_message(generate_error_log(
                             ParserError::NotAMosfetFile,
-                            "The file is not recognized as valid Mosfet file".to_string(),
+                            arcstr::literal!("The file is not recognized as valid Mosfet file"),
                             |log| log,
                         ));
 
@@ -72,17 +72,17 @@ impl MosfetFile {
                         {
                             context.add_message(generate_error_log(
                                 ParserError::TwoStatementsInSameLineInFile,
-                                "Two statements in the same line are forbidden".to_string(),
+                                arcstr::literal!("Two statements in the same line are forbidden"),
                                 |log| {
                                     generate_source_code(log, &reader, |doc| {
-                                        doc.highlight_cursor_str(
+                                        doc.highlight_cursor(
                                             statements
                                                 .last()
                                                 .unwrap()
                                                 .span()
                                                 .end_cursor()
                                                 .byte_offset(),
-                                            Some("Insert a new line (\\n) here"),
+                                            Some(arcstr::literal!("Insert a new line (\\n) here")),
                                             None,
                                         )
                                     })
@@ -106,21 +106,21 @@ impl MosfetFile {
             } else {
                 context.add_message(generate_error_log(
                     ParserError::ExpectedEOFInFile,
-                    "The End Of File (EOF) was expected here".to_string(),
+                    arcstr::literal!("The End Of File (EOF) was expected here"),
                     |log| {
                         let last_statement = statements.last().unwrap();
                         generate_source_code(log, &reader, |doc| {
-                            let doc = doc.highlight_cursor_str(
+                            let doc = doc.highlight_cursor(
                                 last_statement.span().end_cursor().byte_offset(),
-                                Some("The file must end here"),
+                                Some(arcstr::literal!("The file must end here")),
                                 None,
                             );
 
                             if reader.content().len() - reader.byte_offset() != 0 {
-                                doc.highlight_section_str(
+                                doc.highlight_section(
                                     last_statement.span().end_cursor().byte_offset()
                                         ..reader.content().len(),
-                                    Some("Remove this code"),
+                                    Some(arcstr::literal!("Remove this code")),
                                     Some(Color::Magenta),
                                 )
                             } else {
@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn test_parse_empty() {
-        let mut reader = Reader::from_str("");
+        let mut reader = Reader::from_content(arcstr::literal!(""));
         let mut context = ParserContext::default();
         let mosfet_file =
             MosfetFile::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_parse_blank() {
-        let mut reader = Reader::from_str("   \t \t \n\r\n    \t \t ");
+        let mut reader = Reader::from_content(arcstr::literal!("   \t \t \n\r\n    \t \t "));
         let mut context = ParserContext::default();
         let mosfet_file =
             MosfetFile::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn test_parse_statement() {
-        let mut reader = Reader::from_str(" \t  let x = 3   \n\n");
+        let mut reader = Reader::from_content(arcstr::literal!(" \t  let x = 3   \n\n"));
         let mut context = ParserContext::default();
         let mosfet_file =
             MosfetFile::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -191,7 +191,8 @@ mod tests {
 
     #[test]
     fn test_parse_many_statements() {
-        let mut reader = Reader::from_str(" \t  let x = 3   \n let x = 3\nlet x = 3");
+        let mut reader =
+            Reader::from_content(arcstr::literal!(" \t  let x = 3   \n let x = 3\nlet x = 3"));
         let mut context = ParserContext::default();
         let mosfet_file =
             MosfetFile::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -205,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_eof_before_first_statement() {
-        let mut reader = Reader::from_str(" \n t");
+        let mut reader = Reader::from_content(arcstr::literal!(" \n t"));
         let mut context = ParserContext::default();
         let error =
             MosfetFile::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
@@ -215,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_eof_after_first_statement() {
-        let mut reader = Reader::from_str("let x = 3 t");
+        let mut reader = Reader::from_content(arcstr::literal!("let x = 3 t"));
         let mut context = ParserContext::default();
         let error =
             MosfetFile::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
@@ -225,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_two_statements_same_line() {
-        let mut reader = Reader::from_str("let x = 3 let y = 4");
+        let mut reader = Reader::from_content(arcstr::literal!("let x = 3 let y = 4"));
         let mut context = ParserContext::default();
         let error =
             MosfetFile::parse(&mut reader, &mut context).expect_err("The parser must not succeed");

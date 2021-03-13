@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn test_parse_simple() {
-        let mut reader = Reader::from_str("test-rest");
+        let mut reader = Reader::from_content(arcstr::literal!("test-rest"));
         let mut context = ParserContext::default();
         let identifier =
             Identifier::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_parse_with_numbers() {
-        let mut reader = Reader::from_str("t3st3-rest");
+        let mut reader = Reader::from_content(arcstr::literal!("t3st3-rest"));
         let mut context = ParserContext::default();
         let identifier =
             Identifier::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -99,14 +99,14 @@ mod tests {
 
     #[test]
     fn test_parse_with_underscores() {
-        let mut reader = Reader::from_str("_-rest");
+        let mut reader = Reader::from_content(arcstr::literal!("_-rest"));
         let mut context = ParserContext::default();
         let identifier =
             Identifier::parse(&mut reader, &mut context).expect("The parser must succeed");
 
         assert_eq!(identifier.content(), "_", "The name is incorrect");
 
-        let mut reader = Reader::from_str("___test___32___-rest");
+        let mut reader = Reader::from_content(arcstr::literal!("___test___32___-rest"));
         let mut context = ParserContext::default();
         let identifier =
             Identifier::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_not_found() {
-        let mut reader = Reader::from_str("23test");
+        let mut reader = Reader::from_content(arcstr::literal!("23test"));
         let mut context = ParserContext::default();
         let error =
             Identifier::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_parse_keyword() {
-        let mut reader = Reader::from_str("let me test it");
+        let mut reader = Reader::from_content(arcstr::literal!("let me test it"));
         let mut context = ParserContext::default();
         let result = Identifier::parse_keyword(&mut reader, &mut context, "let");
 
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_parse_keyword_err() {
-        let mut reader = Reader::from_str("letting me test it");
+        let mut reader = Reader::from_content(arcstr::literal!("letting me test it"));
         let mut context = ParserContext::default();
         let result = Identifier::parse_keyword(&mut reader, &mut context, "let");
 

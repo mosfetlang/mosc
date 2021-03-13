@@ -7,8 +7,8 @@ edition = "2018"
 homepage = "https://mosfetlang.org"
 
 [dependencies]
+arcstr = { version = "1.0.0", features = ["substr-usize-indices"] }
 bytecount = "0.6.2"
 doclog = { path = "../../doclog" }
-lazy_static = "1.4.0"
 parking_lot = "0.11.1"
 memchr = "2.3.4"

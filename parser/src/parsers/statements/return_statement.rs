@@ -50,12 +50,14 @@ impl ReturnStatement {
                 Err(_) => {
                     context.add_message(generate_error_log(
                         ParserError::MissingExpressionInReturnStatement,
-                        "An expression was expected to specify the value to return".to_string(),
+                        arcstr::literal!(
+                            "An expression was expected to specify the value to return"
+                        ),
                         |log| {
                             generate_source_code(log, &reader, |doc| {
-                                doc.highlight_cursor_str(
+                                doc.highlight_cursor(
                                     reader.byte_offset(),
-                                    Some("Insert an expression here"),
+                                    Some(arcstr::literal!("Insert an expression here")),
                                     None,
                                 )
                             })
@@ -96,7 +98,7 @@ mod tests {
     #[test]
     fn test_parse() {
         // With whitespaces.
-        let mut reader = Reader::from_str("return    test");
+        let mut reader = Reader::from_content(arcstr::literal!("return    test"));
         let mut context = ParserContext::default();
         let statement =
             ReturnStatement::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -114,7 +116,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_not_found() {
-        let mut reader = Reader::from_str("-");
+        let mut reader = Reader::from_content(arcstr::literal!("-"));
         let mut context = ParserContext::default();
         let error = ReturnStatement::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");
@@ -124,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_missing_expression() {
-        let mut reader = Reader::from_str("return");
+        let mut reader = Reader::from_content(arcstr::literal!("return"));
         let mut context = ParserContext::default();
         let error = ReturnStatement::parse(&mut reader, &mut context)
             .expect_err("The parser must not succeed");

@@ -122,7 +122,7 @@ impl Number {
 
         context.add_message(generate_warning_log(
             ParserWarning::NumberWithTrailingZeroes,
-            "Trailing zeroes are unnecessary".to_string(),
+            arcstr::literal!("Trailing zeroes are unnecessary"),
             |log| {
                 generate_source_code(log, &reader, |doc| {
                     doc.highlight_section(
@@ -131,13 +131,13 @@ impl Number {
                         None,
                         Some(Color::Magenta),
                     )
-                    .highlight_section_str(
+                    .highlight_section(
                         (decimal_digits.end_cursor().byte_offset() - number_of_zeroes)
                             ..decimal_digits.end_cursor().byte_offset(),
                         Some(if number_of_zeroes == 1 {
-                            "Remove this zero"
+                            arcstr::literal!("Remove this zero")
                         } else {
-                            "Remove these zeroes"
+                            arcstr::literal!("Remove these zeroes")
                         }),
                         None,
                     )
@@ -171,7 +171,7 @@ mod tests {
 
     #[test]
     fn test_warning_trailing_zeroes() {
-        let mut reader = Reader::from_str("0.00");
+        let mut reader = Reader::from_content(arcstr::literal!("0.00"));
         let mut context = ParserContext::default();
         Number::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -183,7 +183,7 @@ mod tests {
             DECIMAL_PREFIX,
             HEXADECIMAL_PREFIX,
         ] {
-            let mut reader = Reader::from_str(format!("{}0.000", prefix).as_str());
+            let mut reader = Reader::from_content(format!("{}0.000", prefix).into());
             let mut context = ParserContext::default();
             Number::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_ignore_warning_trailing_zeroes() {
-        let mut reader = Reader::from_str("0.00");
+        let mut reader = Reader::from_content(arcstr::literal!("0.00"));
         let mut ignore = ParserIgnoreConfig::new();
         ignore.number_trailing_zeroes = true;
 
@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn test_warning_trailing_zeroes_ignores_0() {
         for number in &["0.0", "1.1", "10101.10101"] {
-            let mut reader = Reader::from_str(number);
+            let mut reader = Reader::from_content((*number).into());
             let mut context = ParserContext::default();
             Number::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -218,7 +218,7 @@ mod tests {
                 DECIMAL_PREFIX,
                 HEXADECIMAL_PREFIX,
             ] {
-                let mut reader = Reader::from_str(format!("{}{}", prefix, number).as_str());
+                let mut reader = Reader::from_content(format!("{}{}", prefix, number).into());
                 let mut context = ParserContext::default();
                 IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 

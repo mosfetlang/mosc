@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_parse_variable_declaration() {
-        let mut reader = Reader::from_str("let test = a");
+        let mut reader = Reader::from_content(arcstr::literal!("let test = a"));
         let mut context = ParserContext::default();
         let statement =
             Statement::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_parse_variable_access() {
-        let mut reader = Reader::from_str("return test");
+        let mut reader = Reader::from_content(arcstr::literal!("return test"));
         let mut context = ParserContext::default();
         let statement =
             Statement::parse(&mut reader, &mut context).expect("The parser must succeed");
@@ -117,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_parse_err_not_found() {
-        let mut reader = Reader::from_str("-");
+        let mut reader = Reader::from_content(arcstr::literal!("-"));
         let mut context = ParserContext::default();
         let error =
             Statement::parse(&mut reader, &mut context).expect_err("The parser must not succeed");
