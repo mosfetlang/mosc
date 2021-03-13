@@ -243,7 +243,7 @@ mod tests {
         for char_range in &WHITESPACE_CHARS {
             for char in char_range.clone() {
                 let text = format!("{}", char);
-                let mut reader = Reader::from_content(text.as_str().into());
+                let mut reader = Reader::from_content(text.as_str());
                 let mut context = ParserContext::default();
                 let whitespace = Whitespace::parse_inline(&mut reader, &mut context)
                     .expect("The parser must succeed");
@@ -398,7 +398,7 @@ mod tests {
         for char_range in &WHITESPACE_CHARS {
             for char in char_range.clone() {
                 let text = format!("{}", char);
-                let mut reader = Reader::from_content(text.as_str().into());
+                let mut reader = Reader::from_content(text.as_str());
                 let mut context = ParserContext::default();
                 let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
                     .expect("The parser must succeed");
@@ -430,7 +430,7 @@ mod tests {
         for char_range in &MULTILINE_WHITESPACE_CHARS {
             for char in char_range.clone() {
                 let text = format!("{}", char);
-                let mut reader = Reader::from_content(text.as_str().into());
+                let mut reader = Reader::from_content(text.as_str());
                 let mut context = ParserContext::default();
                 let whitespace = Whitespace::parse_multiline(&mut reader, &mut context)
                     .expect("The parser must succeed");

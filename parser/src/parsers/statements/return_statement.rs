@@ -55,9 +55,9 @@ impl ReturnStatement {
                         ),
                         |log| {
                             generate_source_code(log, &reader, |doc| {
-                                doc.highlight_cursor(
+                                doc.highlight_cursor_message(
                                     reader.byte_offset(),
-                                    Some(arcstr::literal!("Insert an expression here")),
+                                    arcstr::literal!("Insert an expression here"),
                                     None,
                                 )
                             })

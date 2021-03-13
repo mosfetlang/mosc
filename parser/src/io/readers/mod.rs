@@ -27,19 +27,25 @@ impl Reader {
     // CONSTRUCTORS -----------------------------------------------------------
 
     /// Create a new `Reader` with the specified `file_path` and `content`.
-    pub fn new(file_path: Option<ArcStr>, content: ArcStr) -> Reader {
+    pub fn new<P: Into<ArcStr>, C: Into<ArcStr>>(file_path: P, content: C) -> Reader {
         let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
         Reader {
             id,
-            file_path,
-            content,
+            file_path: Some(file_path.into()),
+            content: content.into(),
             cursor: Cursor::new(id, 0, 0, 1, 1),
         }
     }
 
     /// Create a new `Reader` with the specified `content`.
-    pub fn from_content(content: ArcStr) -> Reader {
-        Self::new(None, content)
+    pub fn from_content<C: Into<ArcStr>>(content: C) -> Reader {
+        let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
+        Reader {
+            id,
+            file_path: None,
+            content: content.into(),
+            cursor: Cursor::new(id, 0, 0, 1, 1),
+        }
     }
 
     // GETTERS ----------------------------------------------------------------
@@ -617,7 +623,7 @@ mod tests {
     #[test]
     fn test_consume_0() {
         let text = "This\nis\nthe\nfragment";
-        let mut reader = Reader::from_content(text.into());
+        let mut reader = Reader::from_content(text);
         reader.consume(0);
 
         assert_eq!(reader.byte_offset(), 0, "The offset is incorrect");
@@ -629,7 +635,7 @@ mod tests {
     #[test]
     fn test_consume() {
         let text = "This\nis\nthe\nfragment";
-        let mut reader = Reader::from_content(text.into());
+        let mut reader = Reader::from_content(text);
         reader.consume(2);
 
         assert_eq!(reader.byte_offset(), 2, "The offset is incorrect");
@@ -655,7 +661,7 @@ mod tests {
     #[test]
     fn test_consume_utf_chars() {
         let text = "モスフェト";
-        let mut reader = Reader::from_content(text.into());
+        let mut reader = Reader::from_content(text);
         reader.consume(3);
 
         assert_eq!(reader.byte_offset(), 3, "The offset is incorrect");

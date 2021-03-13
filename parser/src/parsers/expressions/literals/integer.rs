@@ -216,19 +216,17 @@ impl IntegerNumber {
                                 "A number cannot start with a separator '{}' after the prefix '{}'",
                                 SEPARATOR_RANGE.first().unwrap().start(),
                                 prefix
-                            )
-                            .into(),
+                            ),
                             |log| {
                                 generate_source_code(log, &reader, |doc| {
                                     doc.highlight_section(
                                         (init_cursor.byte_offset() - prefix.len())
                                             ..init_cursor.byte_offset(),
-                                        None,
                                         Some(Color::Magenta),
                                     )
-                                    .highlight_section(
+                                    .highlight_section_message(
                                         init_cursor.byte_offset()..reader.byte_offset(),
-                                        Some(arcstr::literal!("Remove this token")),
+                                        arcstr::literal!("Remove this token"),
                                         None,
                                     )
                                 })
@@ -244,19 +242,17 @@ impl IntegerNumber {
                         format!(
                             "At least one digit was expected after the prefix '{}'",
                             prefix
-                        )
-                        .into(),
+                        ),
                         |log| {
                             generate_source_code(log, &reader, |doc| {
                                 doc.highlight_section(
                                     (init_cursor.byte_offset() - prefix.len())
                                         ..init_cursor.byte_offset(),
-                                    None,
                                     Some(Color::Magenta),
                                 )
-                                .highlight_cursor(
+                                .highlight_cursor_message(
                                     reader.byte_offset(),
-                                    Some(arcstr::literal!("Add a digit here, e.g. 0")),
+                                    arcstr::literal!("Add a digit here, e.g. 0"),
                                     None,
                                 )
                             })
@@ -333,27 +329,25 @@ impl IntegerNumber {
                         doc.highlight_section(
                             (digits.start_cursor().byte_offset() - prefix.len())
                                 ..digits.start_cursor().byte_offset(),
-                            None,
                             Some(Color::Magenta),
                         )
                     } else {
                         doc
                     };
 
-                    doc.highlight_section(
+                    doc.highlight_section_message(
                         digits.start_cursor().byte_offset()
                             ..(digits.start_cursor().byte_offset() + number_of_zeroes),
-                        Some(if number_of_zeroes == 1 {
+                        if number_of_zeroes == 1 {
                             arcstr::literal!("Remove this zero")
                         } else {
                             arcstr::literal!("Remove these zeroes")
-                        }),
+                        },
                         None,
                     )
                     .highlight_section(
                         (digits.end_cursor().byte_offset() - new_content.len())
                             ..digits.end_cursor().byte_offset(),
-                        None,
                         Some(Color::Magenta),
                     )
                 })
@@ -662,9 +656,11 @@ mod tests {
             DECIMAL_PREFIX,
             HEXADECIMAL_PREFIX,
         ] {
-            let mut reader = Reader::from_content(
-                format!("{}{}", prefix, SEPARATOR_RANGE.last().unwrap().start()).into(),
-            );
+            let mut reader = Reader::from_content(format!(
+                "{}{}",
+                prefix,
+                SEPARATOR_RANGE.last().unwrap().start()
+            ));
             let mut context = ParserContext::default();
             let error = IntegerNumber::parse(&mut reader, &mut context)
                 .expect_err("The parser must not succeed");
@@ -685,7 +681,7 @@ mod tests {
             DECIMAL_PREFIX,
             HEXADECIMAL_PREFIX,
         ] {
-            let mut reader = Reader::from_content((*prefix).into());
+            let mut reader = Reader::from_content(*prefix);
             let mut context = ParserContext::default();
             let error = IntegerNumber::parse(&mut reader, &mut context)
                 .expect_err("The parser must not succeed");
@@ -712,7 +708,7 @@ mod tests {
             DECIMAL_PREFIX,
             HEXADECIMAL_PREFIX,
         ] {
-            let mut reader = Reader::from_content(format!("{}00", prefix).into());
+            let mut reader = Reader::from_content(format!("{}00", prefix));
             let mut context = ParserContext::default();
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -735,7 +731,7 @@ mod tests {
     #[test]
     fn test_warning_leading_zeroes_ignores_ok_numbers() {
         for number in &["0", "1", "10101"] {
-            let mut reader = Reader::from_content((*number).into());
+            let mut reader = Reader::from_content(*number);
             let mut context = ParserContext::default();
             IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -747,7 +743,7 @@ mod tests {
                 DECIMAL_PREFIX,
                 HEXADECIMAL_PREFIX,
             ] {
-                let mut reader = Reader::from_content(format!("{}{}", prefix, number).into());
+                let mut reader = Reader::from_content(format!("{}{}", prefix, number));
                 let mut context = ParserContext::default();
                 IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 

@@ -17,13 +17,13 @@ impl Span {
     // CONSTRUCTORS -----------------------------------------------------------
 
     /// Builds a new `Span` with the specified data.
-    pub(in crate) fn new(
-        content: ArcStr,
+    pub(in crate) fn new<C: Into<ArcStr>>(
+        content: C,
         start_cursor: Arc<Cursor>,
         end_cursor: Arc<Cursor>,
     ) -> Span {
         Span {
-            content,
+            content: content.into(),
             start_cursor,
             end_cursor,
         }
@@ -122,7 +122,7 @@ mod tests {
     fn test_lines_single_line() {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
-            text.into(),
+            text,
             Arc::new(Cursor::new(0, 1, 0, 0, 0)), // Only offset matters.
             Arc::new(Cursor::new(0, 1, 0, 0, 0)), // Only offset matters.
         );
@@ -132,7 +132,7 @@ mod tests {
         // Check at \n
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
-            text.into(),
+            text,
             Arc::new(Cursor::new(0, 4, 0, 0, 0)), // Only offset matters.
             Arc::new(Cursor::new(0, 4, 0, 0, 0)), // Only offset matters.
         );
@@ -142,7 +142,7 @@ mod tests {
         // Check next of \n
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
-            text.into(),
+            text,
             Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
             Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
         );
@@ -154,7 +154,7 @@ mod tests {
     fn test_lines_multiline() {
         let text = "This\nis\nthe\ntest";
         let span = Span::new(
-            text.into(),
+            text,
             Arc::new(Cursor::new(0, 5, 0, 0, 0)), // Only offset matters.
             Arc::new(Cursor::new(0, 8, 0, 0, 0)), // Only offset matters.
         );

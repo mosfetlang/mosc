@@ -75,14 +75,14 @@ impl MosfetFile {
                                 arcstr::literal!("Two statements in the same line are forbidden"),
                                 |log| {
                                     generate_source_code(log, &reader, |doc| {
-                                        doc.highlight_cursor(
+                                        doc.highlight_cursor_message(
                                             statements
                                                 .last()
                                                 .unwrap()
                                                 .span()
                                                 .end_cursor()
                                                 .byte_offset(),
-                                            Some(arcstr::literal!("Insert a new line (\\n) here")),
+                                            arcstr::literal!("Insert a new line (\\n) here"),
                                             None,
                                         )
                                     })
@@ -110,17 +110,17 @@ impl MosfetFile {
                     |log| {
                         let last_statement = statements.last().unwrap();
                         generate_source_code(log, &reader, |doc| {
-                            let doc = doc.highlight_cursor(
+                            let doc = doc.highlight_cursor_message(
                                 last_statement.span().end_cursor().byte_offset(),
-                                Some(arcstr::literal!("The file must end here")),
+                                arcstr::literal!("The file must end here"),
                                 None,
                             );
 
                             if reader.content().len() - reader.byte_offset() != 0 {
-                                doc.highlight_section(
+                                doc.highlight_section_message(
                                     last_statement.span().end_cursor().byte_offset()
                                         ..reader.content().len(),
-                                    Some(arcstr::literal!("Remove this code")),
+                                    arcstr::literal!("Remove this code"),
                                     Some(Color::Magenta),
                                 )
                             } else {

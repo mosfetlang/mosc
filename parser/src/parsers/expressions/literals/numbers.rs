@@ -128,17 +128,16 @@ impl Number {
                     doc.highlight_section(
                         number.span.start_cursor().byte_offset()
                             ..(decimal_digits.end_cursor().byte_offset() - number_of_zeroes),
-                        None,
                         Some(Color::Magenta),
                     )
-                    .highlight_section(
+                    .highlight_section_message(
                         (decimal_digits.end_cursor().byte_offset() - number_of_zeroes)
                             ..decimal_digits.end_cursor().byte_offset(),
-                        Some(if number_of_zeroes == 1 {
+                        if number_of_zeroes == 1 {
                             arcstr::literal!("Remove this zero")
                         } else {
                             arcstr::literal!("Remove these zeroes")
-                        }),
+                        },
                         None,
                     )
                 })
@@ -183,7 +182,7 @@ mod tests {
             DECIMAL_PREFIX,
             HEXADECIMAL_PREFIX,
         ] {
-            let mut reader = Reader::from_content(format!("{}0.000", prefix).into());
+            let mut reader = Reader::from_content(format!("{}0.000", prefix));
             let mut context = ParserContext::default();
             Number::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -206,7 +205,7 @@ mod tests {
     #[test]
     fn test_warning_trailing_zeroes_ignores_0() {
         for number in &["0.0", "1.1", "10101.10101"] {
-            let mut reader = Reader::from_content((*number).into());
+            let mut reader = Reader::from_content(*number);
             let mut context = ParserContext::default();
             Number::parse(&mut reader, &mut context).expect("The parser must succeed");
 
@@ -218,7 +217,7 @@ mod tests {
                 DECIMAL_PREFIX,
                 HEXADECIMAL_PREFIX,
             ] {
-                let mut reader = Reader::from_content(format!("{}{}", prefix, number).into());
+                let mut reader = Reader::from_content(format!("{}{}", prefix, number));
                 let mut context = ParserContext::default();
                 IntegerNumber::parse(&mut reader, &mut context).expect("The parser must succeed");
 

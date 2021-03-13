@@ -30,27 +30,25 @@ where
     }
 }
 
-pub fn generate_warning_log<F>(warning_type: ParserWarning, title: ArcStr, builder: F) -> Log
+pub fn generate_warning_log<F, T: Into<ArcStr>>(
+    warning_type: ParserWarning,
+    title: T,
+    builder: F,
+) -> Log
 where
     F: FnOnce(Log) -> Log,
 {
     builder(Log::warn().title(title, true, false)).indent(2, |log| {
-        log.note(
-            LOG_WARNING_ID_TITLE.clone(),
-            format!("{:?}", warning_type).into(),
-        )
+        log.note(LOG_WARNING_ID_TITLE.clone(), format!("{:?}", warning_type))
     })
 }
 
-pub fn generate_error_log<F>(error_type: ParserError, title: ArcStr, builder: F) -> Log
+pub fn generate_error_log<F, T: Into<ArcStr>>(error_type: ParserError, title: T, builder: F) -> Log
 where
     F: FnOnce(Log) -> Log,
 {
     builder(Log::error().title(title, true, false)).indent(2, |log| {
-        log.note(
-            LOG_ERROR_ID_TITLE.clone(),
-            format!("{:?}", error_type).into(),
-        )
+        log.note(LOG_ERROR_ID_TITLE.clone(), format!("{:?}", error_type))
     })
 }
 

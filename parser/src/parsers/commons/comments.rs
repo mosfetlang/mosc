@@ -115,20 +115,16 @@ impl Comment {
                     format!(
                         "The end token '{}' was expected here to close the multiline comment",
                         close_token
-                    )
-                    .into(),
+                    ),
                     |log| {
                         generate_source_code(log, &reader, |doc| {
                             doc.highlight_section(
                                 init_cursor.byte_offset()..reader.byte_offset(),
-                                None,
                                 Some(Color::Magenta),
                             )
-                            .highlight_cursor(
+                            .highlight_cursor_message(
                                 reader.byte_offset(),
-                                Some(
-                                    format!("Insert here the close token '{}'", close_token).into(),
-                                ),
+                                format!("Insert here the close token '{}'", close_token),
                                 None,
                             )
                             .related_document(|doc| {
@@ -136,18 +132,11 @@ impl Comment {
                                 doc.title(arcstr::literal!("or"))
                                     .highlight_section(
                                         init_cursor.byte_offset()..end_position,
-                                        None,
                                         Some(Color::Magenta),
                                     )
-                                    .highlight_cursor(
+                                    .highlight_cursor_message(
                                         end_position,
-                                        Some(
-                                            format!(
-                                                "Insert here the close token '{}'",
-                                                close_token
-                                            )
-                                            .into(),
-                                        ),
+                                        format!("Insert here the close token '{}'", close_token),
                                         None,
                                     )
                             })
@@ -244,7 +233,7 @@ mod tests {
     #[test]
     fn test_parse_inline_not_found() {
         for content in &["", "#", "#This is a comment"] {
-            let mut reader = Reader::from_content((*content).into());
+            let mut reader = Reader::from_content(*content);
             let mut context = ParserContext::default();
             let error = Comment::parse_inline(&mut reader, &mut context)
                 .expect_err("The parser must not succeed");
@@ -311,7 +300,7 @@ mod tests {
     #[test]
     fn test_parse_multiline_immediately_closed() {
         for content in &["#+#", "#++#", "#+++#"] {
-            let mut reader = Reader::from_content((*content).into());
+            let mut reader = Reader::from_content(*content);
             let mut context = ParserContext::default();
             let comment = Comment::parse_multiline(&mut reader, &mut context)
                 .expect("The parser must succeed");
@@ -333,7 +322,7 @@ mod tests {
     #[test]
     fn test_parse_multiline_not_found() {
         for content in &["", "#", "#This is a comment"] {
-            let mut reader = Reader::from_content((*content).into());
+            let mut reader = Reader::from_content(*content);
             let mut context = ParserContext::default();
             let error = Comment::parse_multiline(&mut reader, &mut context)
                 .expect_err("The parser must not succeed");

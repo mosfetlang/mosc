@@ -74,12 +74,11 @@ impl VariableDeclaration {
                                 doc.highlight_section(
                                     init_cursor.byte_offset()
                                         ..pre_name_whitespace.span().start_cursor().byte_offset(),
-                                    None,
                                     Some(Color::Magenta),
                                 )
-                                .highlight_cursor(
+                                .highlight_cursor_message(
                                     pre_name_whitespace.span().start_cursor().byte_offset(),
-                                    Some(arcstr::literal!("Insert an identifier here")),
+                                    arcstr::literal!("Insert an identifier here"),
                                     None,
                                 )
                             })
@@ -105,21 +104,18 @@ impl VariableDeclaration {
                                     .span()
                                     .start_cursor()
                                     .byte_offset(),
-                                None,
                                 Some(Color::Magenta),
                             )
-                                .highlight_cursor(
+                                .highlight_cursor_message(
                                     pre_assign_operator_whitespace
                                         .span()
                                         .start_cursor()
                                         .byte_offset(),
-                                    Some(
-                                        format!(
-                                            "Insert the assign operator '{}' here",
-                                            ASSIGN_OPERATOR
-                                        )
-                                            .into(),
-                                    ),
+                                    format!(
+                                        "Insert the assign operator '{}' here",
+                                        ASSIGN_OPERATOR
+                                    )
+                                    ,
                                     None,
                                 )
                         })
@@ -145,15 +141,14 @@ impl VariableDeclaration {
                                             .span()
                                             .start_cursor()
                                             .byte_offset(),
-                                    None,
                                     Some(Color::Magenta),
                                 )
-                                .highlight_cursor(
+                                .highlight_cursor_message(
                                     pre_expression_whitespace
                                         .span()
                                         .start_cursor()
                                         .byte_offset(),
-                                    Some(arcstr::literal!("Insert an expression here")),
+                                    arcstr::literal!("Insert an expression here"),
                                     None,
                                 )
                             })
