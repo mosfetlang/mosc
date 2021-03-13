@@ -31,7 +31,7 @@ impl Identifier {
     /// Parses an `Identifier`.
     pub fn parse(reader: &mut Reader, _context: &mut ParserContext) -> ParserResult<Identifier> {
         cursor_manager(reader, |reader, init_cursor| {
-            if let None = reader.read_one_of(&HEAD_CHARS) {
+            if reader.read_one_of(&HEAD_CHARS).is_none() {
                 return Err(ParserResultError::NotFound);
             }
 

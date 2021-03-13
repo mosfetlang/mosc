@@ -90,7 +90,7 @@ impl Reader {
         Span::new(
             self.content.clone(),
             Arc::new(self.cursor.clone()),
-            Arc::new(aux_reader.cursor.clone()),
+            Arc::new(aux_reader.cursor),
         )
     }
 

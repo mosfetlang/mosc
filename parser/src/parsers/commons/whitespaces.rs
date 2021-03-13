@@ -68,7 +68,7 @@ impl Whitespace {
             loop {
                 let pre_cursor = reader.save_cursor();
 
-                if let Some(_) = reader.read_many_of(&WHITESPACE_CHARS) {
+                if reader.read_many_of(&WHITESPACE_CHARS).is_some() {
                     let span = Arc::new(reader.substring_to_current(&pre_cursor));
                     elements.push(WhitespaceElement::Whitespace(span));
 
@@ -116,12 +116,12 @@ impl Whitespace {
 
                 let mut any_whitespace = false;
                 loop {
-                    if let Some(_) = reader.read_many_of(&WHITESPACE_CHARS) {
+                    if reader.read_many_of(&WHITESPACE_CHARS).is_some() {
                         any_whitespace = true;
                         continue;
                     }
 
-                    if let Some(_) = reader.read_many_of(&MULTILINE_WHITESPACE_CHARS) {
+                    if reader.read_many_of(&MULTILINE_WHITESPACE_CHARS).is_some() {
                         any_whitespace = true;
                         is_multiline = true;
                         continue;

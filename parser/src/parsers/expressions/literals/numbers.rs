@@ -63,7 +63,7 @@ impl Number {
 
             let post_decimal_cursor = reader.save_cursor();
             let digit_interval = integer_part.radix().digit_chars();
-            if let None = reader.read_many_of(digit_interval) {
+            if reader.read_many_of(digit_interval).is_none() {
                 reader.restore(pre_decimal_cursor);
                 return Ok(Number {
                     integer: integer_part,
@@ -74,11 +74,11 @@ impl Number {
 
             loop {
                 let init_loop_cursor = reader.save_cursor();
-                if let None = reader.read_many_of(&SEPARATOR_RANGE) {
+                if reader.read_many_of(&SEPARATOR_RANGE).is_none() {
                     break;
                 }
 
-                if let None = reader.read_many_of(digit_interval) {
+                if reader.read_many_of(digit_interval).is_none() {
                     reader.restore(init_loop_cursor);
                     break;
                 }
@@ -103,7 +103,7 @@ impl Number {
 
         let decimal_digits = number.decimal_digits.as_ref().unwrap();
         let content = decimal_digits.content();
-        let new_content = content.trim_end_matches("0");
+        let new_content = content.trim_end_matches('0');
 
         if new_content.len() == content.len() {
             return;
@@ -111,7 +111,7 @@ impl Number {
 
         let mut number_of_zeroes = content.len() - new_content.len();
 
-        if new_content.len() == 0 {
+        if new_content.is_empty() {
             if number_of_zeroes == 1 {
                 // Ignore because number is equal to X.0
                 return;

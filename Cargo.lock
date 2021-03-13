@@ -10,6 +10,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arcstr"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "514f4b246c9aa8f35393407c55f20df89cae359831c136cd4e61c97cd1dd5dfa"
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -99,9 +105,9 @@ dependencies = [
 name = "doclog"
 version = "0.1.0"
 dependencies = [
+ "arcstr",
  "bytecount",
  "chrono",
- "lazy_static",
  "memchr",
  "strip-ansi-escapes",
  "yansi",
@@ -272,9 +278,9 @@ dependencies = [
 name = "parser"
 version = "0.1.0"
 dependencies = [
+ "arcstr",
  "bytecount",
  "doclog",
- "lazy_static",
  "memchr",
  "parking_lot",
 ]

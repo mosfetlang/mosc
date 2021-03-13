@@ -66,6 +66,11 @@ impl Span {
         self.end_cursor.byte_offset() - self.start_cursor.byte_offset()
     }
 
+    /// Whether the span is empty or not.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// The length of the `Span` in characters.
     pub fn char_length(&self) -> usize {
         self.end_cursor.char_offset() - self.start_cursor.char_offset()

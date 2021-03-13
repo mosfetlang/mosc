@@ -109,7 +109,7 @@ impl Comment {
                 });
             }
 
-            if let None = reader.read_until(close_token.as_str(), false) {
+            if reader.read_until(close_token.as_str(), false).is_none() {
                 context.add_message(generate_error_log(
                     ParserError::MultilineCommentWithoutEndToken,
                     format!(
@@ -161,12 +161,12 @@ impl Comment {
             let end_message_cursor = reader.save_cursor();
             assert!(reader.read(close_token.as_str()));
 
-            return Ok(Comment {
+            Ok(Comment {
                 span: Arc::new(reader.substring_to_current(&init_cursor)),
                 is_multiline_type: true,
                 message: Arc::new(reader.substring(&init_message_cursor, &end_message_cursor)),
                 repeated_tokens: close_token.len() - 1,
-            });
+            })
         })
     }
 }

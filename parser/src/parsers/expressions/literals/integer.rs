@@ -204,7 +204,7 @@ impl IntegerNumber {
         has_prefix: bool,
     ) -> ParserResult<IntegerNumber> {
         cursor_manager(reader, |reader, init_cursor| {
-            if let None = reader.read_many_of(digit_interval) {
+            if reader.read_many_of(digit_interval).is_none() {
                 if has_prefix {
                     // Error: separator after prefix.
                     let prefix = radix.prefix_str();
@@ -271,11 +271,11 @@ impl IntegerNumber {
 
             loop {
                 let init_loop_cursor = reader.save_cursor();
-                if let None = reader.read_many_of(&SEPARATOR_RANGE) {
+                if reader.read_many_of(&SEPARATOR_RANGE).is_none() {
                     break;
                 }
 
-                if let None = reader.read_many_of(digit_interval) {
+                if reader.read_many_of(digit_interval).is_none() {
                     reader.restore(init_loop_cursor);
                     break;
                 }
@@ -306,7 +306,7 @@ impl IntegerNumber {
         }
 
         let content = digits.content();
-        let mut new_content = content.trim_start_matches("0");
+        let mut new_content = content.trim_start_matches('0');
 
         if new_content.len() == content.len() {
             return;
@@ -314,7 +314,7 @@ impl IntegerNumber {
 
         let mut number_of_zeroes = content.len() - new_content.len();
 
-        if new_content.len() == 0 {
+        if new_content.is_empty() {
             if number_of_zeroes == 1 {
                 // Ignore because number is equal to 0
                 return;
@@ -329,7 +329,7 @@ impl IntegerNumber {
             arcstr::literal!("Leading zeroes are unnecessary"),
             |log| {
                 generate_source_code(log, &reader, |doc| {
-                    let doc = if prefix.len() != 0 {
+                    let doc = if !prefix.is_empty() {
                         doc.highlight_section(
                             (digits.start_cursor().byte_offset() - prefix.len())
                                 ..digits.start_cursor().byte_offset(),
